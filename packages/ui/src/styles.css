@@ -227,8 +227,8 @@ textarea:focus {
    The 3 px inset leaves room for its outer shadow inside the window. The rim carries a
    subtle state cue; the glow and the traveling light stay on the rose's strokes. */
 .dot-disc {
-	--rim: rgba(218, 119, 86, 0.25);
-	--rim-glow: rgba(218, 119, 86, 0);
+	--rim: rgba(203, 213, 225, 0.28);
+	--rim-glow: rgba(226, 232, 240, 0);
 	position: absolute;
 	inset: 3px;
 	border-radius: 50%;
@@ -236,20 +236,26 @@ textarea:focus {
 	box-shadow:
 		0 1px 2px rgba(0, 0, 0, 0.6),
 		0 0 1px rgba(0, 0, 0, 0.5),
-		inset 0 1px 0 rgba(255, 255, 255, 0.07),
+		inset 0 1px 0 rgba(255, 255, 255, 0.1),
 		inset 0 0 0 1px var(--rim),
 		inset 0 0 6px var(--rim-glow);
 	transition: box-shadow 400ms var(--ease);
 }
 
 .dot-thinking .dot-disc {
-	--rim: rgba(218, 119, 86, 0.45);
-	--rim-glow: rgba(218, 119, 86, 0.15);
+	--rim: rgba(241, 245, 249, 0.7);
+	--rim-glow: rgba(226, 232, 240, 0.35);
 }
 
 .dot-working .dot-disc {
-	--rim: rgba(218, 119, 86, 0.65);
-	--rim-glow: rgba(218, 119, 86, 0.3);
+	--rim: #ffffff;
+	--rim-glow: rgba(241, 245, 249, 0.75);
+	box-shadow:
+		0 0 14px rgba(255, 255, 255, 0.6),
+		0 0 24px rgba(203, 213, 225, 0.45),
+		inset 0 1px 0 rgba(255, 255, 255, 0.2),
+		inset 0 0 0 1px var(--rim),
+		inset 0 0 10px var(--rim-glow);
 }
 
 .dot-needs_you .dot-disc {
@@ -278,49 +284,99 @@ textarea:focus {
 	--rim-glow: rgba(224, 194, 122, 0.45);
 }
 
-.dot-logo {
+/* White background badge framing the UNAL logo */
+.dot-logo-badge {
 	position: absolute;
-	inset: 11px;
-	width: calc(100% - 22px);
-	height: calc(100% - 22px);
-	object-fit: contain;
+	inset: 7px;
+	border-radius: 50%;
+	background: #ffffff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	z-index: 2;
-	filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
-	pointer-events: none;
+	box-shadow:
+		0 1px 3px rgba(0, 0, 0, 0.4),
+		inset 0 0 0 1px rgba(203, 213, 225, 0.4);
 	transition:
 		transform 300ms var(--ease),
+		box-shadow 300ms var(--ease),
 		filter 300ms var(--ease);
+	overflow: hidden;
 }
 
-.dot-thinking .dot-logo {
-	animation: dot-logo-pulse 2.2s ease-in-out infinite;
+.dot-logo {
+	width: 82%;
+	height: 82%;
+	object-fit: contain;
+	pointer-events: none;
+	filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
 }
 
-.dot-working .dot-logo {
-	animation: dot-logo-working 1.6s ease-in-out infinite;
+/* Silver thinking state: gentle silver pulse */
+.dot-thinking .dot-logo-badge {
+	animation: silver-thinking-pulse 2.2s ease-in-out infinite;
 }
 
-@keyframes dot-logo-pulse {
+/* Silver working state: luminous chrome / silver aura and traveling spin */
+.dot-working .dot-logo-badge {
+	animation: silver-working-aura 1.5s ease-in-out infinite;
+}
+
+.dot-working .dot-logo-badge::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: 50%;
+	background: conic-gradient(
+		from 0deg,
+		transparent 0%,
+		rgba(255, 255, 255, 0.9) 20%,
+		rgba(203, 213, 225, 0.8) 45%,
+		transparent 70%
+	);
+	mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 2px));
+	-webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 2px));
+	animation: silver-spin 1.4s linear infinite;
+	pointer-events: none;
+}
+
+@keyframes silver-thinking-pulse {
+	0%,
+	100% {
+		box-shadow:
+			0 1px 3px rgba(0, 0, 0, 0.4),
+			0 0 6px rgba(203, 213, 225, 0.35);
+	}
+	50% {
+		box-shadow:
+			0 1px 3px rgba(0, 0, 0, 0.4),
+			0 0 14px rgba(241, 245, 249, 0.7),
+			0 0 24px rgba(203, 213, 225, 0.45);
+	}
+}
+
+@keyframes silver-working-aura {
 	0%,
 	100% {
 		transform: scale(1);
-		filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
+		box-shadow:
+			0 1px 3px rgba(0, 0, 0, 0.4),
+			0 0 8px rgba(203, 213, 225, 0.5),
+			0 0 18px rgba(226, 232, 240, 0.35);
 	}
 	50% {
-		transform: scale(1.05);
-		filter: drop-shadow(0 0 10px var(--accent));
+		transform: scale(1.04);
+		box-shadow:
+			0 1px 3px rgba(0, 0, 0, 0.4),
+			0 0 16px rgba(255, 255, 255, 0.95),
+			0 0 28px rgba(226, 232, 240, 0.8),
+			0 0 40px rgba(203, 213, 225, 0.5);
 	}
 }
 
-@keyframes dot-logo-working {
-	0%,
-	100% {
-		transform: scale(1);
-		filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
-	}
-	50% {
-		transform: scale(1.08);
-		filter: drop-shadow(0 0 14px var(--accent));
+@keyframes silver-spin {
+	to {
+		transform: rotate(360deg);
 	}
 }
 

@@ -79,6 +79,7 @@ export function DotSurface({
 			}}
 		>
 			<span className="dot-disc" aria-hidden="true">
+				<img src="./logo-labia.png" alt="" className="dot-logo" aria-hidden="true" />
 				<Rose mood={inControl ? "control" : MOODS[state]} />
 			</span>
 			{state === "needs_you" ? (

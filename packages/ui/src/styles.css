@@ -1,23 +1,23 @@
-/* Visual tokens measured from gentlemanprogramming.com (S15). Dark only. */
+/* Dark theme with clean neutral background and white text, similar to Claude Code / Pi. */
 :root {
-	--bg: #1a1218;
-	--bg-glass: rgba(26, 18, 24, 0.82);
-	--surface: #20161e;
-	--surface-2: #241822;
-	--line: #342230;
-	--text: #f6eff3;
-	--muted: #a78e9b;
-	--accent: #f095c8;
-	/* Text on the pink accent: white is 2.13:1 there, this is 8.60:1 (the site's pills do the same). */
-	--accent-ink: #1a1218;
-	--accent-soft: rgba(240, 149, 200, 0.12);
-	--accent-line: rgba(240, 149, 200, 0.35);
-	--accent-shadow: 0 10px 30px rgba(240, 149, 200, 0.3);
-	--green: #b4e7c7;
-	--red: #ff718f;
-	--yellow: #e0c27a;
+	--bg: #121214;
+	--bg-glass: rgba(18, 18, 20, 0.85);
+	--surface: #18181b;
+	--surface-2: #222226;
+	--line: #2d2d32;
+	--text: #ffffff;
+	--muted: #9e9ea6;
+	--accent: #da7756;
+	/* Text on the accent: high contrast. */
+	--accent-ink: #121214;
+	--accent-soft: rgba(218, 119, 86, 0.14);
+	--accent-line: rgba(218, 119, 86, 0.35);
+	--accent-shadow: 0 10px 30px rgba(218, 119, 86, 0.25);
+	--green: #4ade80;
+	--red: #f87171;
+	--yellow: #fbbf24;
 	/* The rose Dot's badge (S9) keeps its own amber. */
-	--amber: #f5a524;
+	--amber: #f59e0b;
 	--radius-sm: 8px;
 	--radius-md: 12px;
 	--radius-lg: 16px;
@@ -26,8 +26,8 @@
 	/* The reading column of the web page and of the full-screen panel (S26.2). */
 	--reading-width: 780px;
 	--ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-	--font-text: Inter, "SF Pro Text", system-ui, -apple-system, "Segoe UI", sans-serif;
-	--font-mono: "IosevkaTerm NF", "Iosevka Term", "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
+	--font-text: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+	--font-mono: "JetBrains Mono", "SF Mono", "IosevkaTerm NF", "Iosevka Term", Menlo, monospace;
 	color-scheme: dark;
 	font: 14px / 20px var(--font-text);
 	color: var(--text);
@@ -46,7 +46,7 @@ body,
 }
 
 body {
-	background: radial-gradient(900px 480px at 12% -12%, rgba(240, 149, 200, 0.1), transparent 70%), var(--bg);
+	background: radial-gradient(900px 480px at 12% -12%, rgba(218, 119, 86, 0.06), transparent 70%), var(--bg);
 }
 
 html[data-surface="dot"] body,
@@ -223,16 +223,16 @@ textarea:focus {
 	outline-offset: -2px;
 }
 
-/* The black disc, as on the app icon: a near-black radial fill with a faint pink rim.
+/* The black disc, as on the app icon: a near-black radial fill with a clean subtle rim.
    The 3 px inset leaves room for its outer shadow inside the window. The rim carries a
    subtle state cue; the glow and the traveling light stay on the rose's strokes. */
 .dot-disc {
-	--rim: rgba(255, 45, 122, 0.22);
-	--rim-glow: rgba(255, 45, 122, 0);
+	--rim: rgba(218, 119, 86, 0.25);
+	--rim-glow: rgba(218, 119, 86, 0);
 	position: absolute;
 	inset: 3px;
 	border-radius: 50%;
-	background: radial-gradient(circle at 50% 40%, #1a0a12, #050506 75%);
+	background: radial-gradient(circle at 50% 40%, #1c1c20, #0a0a0c 75%);
 	box-shadow:
 		0 1px 2px rgba(0, 0, 0, 0.6),
 		0 0 1px rgba(0, 0, 0, 0.5),
@@ -243,12 +243,13 @@ textarea:focus {
 }
 
 .dot-thinking .dot-disc {
-	--rim: rgba(255, 45, 122, 0.32);
+	--rim: rgba(218, 119, 86, 0.45);
+	--rim-glow: rgba(218, 119, 86, 0.15);
 }
 
 .dot-working .dot-disc {
-	--rim: rgba(255, 45, 122, 0.45);
-	--rim-glow: rgba(255, 45, 122, 0.22);
+	--rim: rgba(218, 119, 86, 0.65);
+	--rim-glow: rgba(218, 119, 86, 0.3);
 }
 
 .dot-needs_you .dot-disc {
@@ -267,8 +268,8 @@ textarea:focus {
 
 /* In control of the Mac (S24.6): the accent rim glows steadily over every other state. */
 .dot-in_control .dot-disc {
-	--rim: rgba(240, 149, 200, 0.8);
-	--rim-glow: rgba(240, 149, 200, 0.35);
+	--rim: rgba(218, 119, 86, 0.85);
+	--rim-glow: rgba(218, 119, 86, 0.35);
 }
 
 /* Yolo mode (S24.9): the rim turns amber while risky actions run unasked; after in-control so it wins. */
@@ -277,11 +278,58 @@ textarea:focus {
 	--rim-glow: rgba(224, 194, 122, 0.45);
 }
 
+.dot-logo {
+	position: absolute;
+	inset: 11px;
+	width: calc(100% - 22px);
+	height: calc(100% - 22px);
+	object-fit: contain;
+	z-index: 2;
+	filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
+	pointer-events: none;
+	transition:
+		transform 300ms var(--ease),
+		filter 300ms var(--ease);
+}
+
+.dot-thinking .dot-logo {
+	animation: dot-logo-pulse 2.2s ease-in-out infinite;
+}
+
+.dot-working .dot-logo {
+	animation: dot-logo-working 1.6s ease-in-out infinite;
+}
+
+@keyframes dot-logo-pulse {
+	0%,
+	100% {
+		transform: scale(1);
+		filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
+	}
+	50% {
+		transform: scale(1.05);
+		filter: drop-shadow(0 0 10px var(--accent));
+	}
+}
+
+@keyframes dot-logo-working {
+	0%,
+	100% {
+		transform: scale(1);
+		filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
+	}
+	50% {
+		transform: scale(1.08);
+		filter: drop-shadow(0 0 14px var(--accent));
+	}
+}
+
 .rose {
 	position: relative;
 	display: block;
 	width: 100%;
 	height: 100%;
+	opacity: 0.35;
 }
 
 .rose svg {
@@ -522,12 +570,12 @@ textarea:focus {
 }
 
 .chat-panel {
-	background: rgba(26, 18, 24, 0.94);
+	background: rgba(18, 18, 20, 0.95);
 	border: 1px solid var(--line);
 	border-radius: var(--radius);
 	overflow: hidden;
-	backdrop-filter: blur(24px) saturate(1.3);
-	-webkit-backdrop-filter: blur(24px) saturate(1.3);
+	backdrop-filter: blur(24px) saturate(1.2);
+	-webkit-backdrop-filter: blur(24px) saturate(1.2);
 }
 
 /* No vibrancy behind the window (Linux): nothing to blur, so the panel is opaque. */
@@ -576,8 +624,8 @@ html[data-effects="none"] .chat-panel {
 
 .rose-glyph {
 	flex: none;
-	color: #ff2d7a;
-	filter: drop-shadow(0 0 4px rgba(255, 45, 122, 0.45));
+	border-radius: 3px;
+	filter: drop-shadow(0 0 3px rgba(218, 119, 86, 0.35));
 }
 
 .state-dot {

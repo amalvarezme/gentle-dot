@@ -269,6 +269,15 @@ describe("while the assistant controls the Mac (S24.6)", () => {
 		expect(banner).toHaveTextContent("Controlling your Mac · 25:00 left");
 	});
 
+	it("counts a session longer than an hour in hours", async () => {
+		vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"] });
+		vi.setSystemTime(1_800_000_000_000);
+		h.status = { active: true, endsAt: 1_800_000_000 + 8 * 60 * 60 };
+		await renderApp("?surface=panel");
+		const banner = await screen.findByRole("region", { name: "Computer control" });
+		expect(banner).toHaveTextContent("Controlling your Mac · 8:00:00 left");
+	});
+
 	it("the rose shows the in-control state and goes back when the session ends", async () => {
 		await renderApp("?surface=dot");
 		const dot = screen.getByRole("button");

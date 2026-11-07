@@ -333,7 +333,7 @@ pub trait Desktop: Send + Sync {
 
 /// Native dialogs owned by the app, never the webview (S24.3, S24.4).
 pub trait Dialogs: Send + Sync {
-    /// "Allow Gentle Dot to see and control this Mac for 30 minutes?" (Allow / Deny).
+    /// "Allow Gentle Dot to see and control this Mac for 8 hours?" (Allow / Deny).
     fn ask_grant(&self) -> bool;
     /// A per-action confirmation showing the action and its target.
     fn confirm(&self, message: &str) -> bool;

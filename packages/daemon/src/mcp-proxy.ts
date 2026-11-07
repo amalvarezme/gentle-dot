@@ -49,6 +49,8 @@ export interface ProxiedConnector {
 	mode: ConnectorMode;
 	/** The curated read-only tools (empty for a server of the user's own). */
 	readOnlyTools: readonly string[];
+	/** Tools the server itself marks read-only run without asking (a server the user vouches for). */
+	trustsReadHints?: boolean;
 	/** The real server: its address, or the command the daemon runs. Secrets come from the credentials. */
 	server: { url: string } | { command: string; args?: string[]; cwd?: string };
 	/** Changes whenever the server or its values change, so the connection to it is made again. */
@@ -294,7 +296,8 @@ export class McpProxy {
 		if (!tool) tool = (await this.listTools(connector, signal)).find((t) => t.name === name);
 		if (!tool) throw new ProxyError(JSON_RPC_ERROR_CODES.invalidParams, `Unknown tool: ${name}`);
 		refuseHidden(connector, tool);
-		if (!isReadOnlyTool(tool.name, tool.annotations?.readOnlyHint, connector.readOnlyTools)) {
+		const trustedRead = connector.trustsReadHints === true && tool.annotations?.readOnlyHint === true;
+		if (!trustedRead && !isReadOnlyTool(tool.name, tool.annotations?.readOnlyHint, connector.readOnlyTools)) {
 			const preview: ApprovalPreview = {
 				connectorId: connector.id,
 				connector: connector.name,

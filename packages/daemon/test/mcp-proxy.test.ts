@@ -16,6 +16,7 @@ import {
 } from "@earendil-works/pi-mcp";
 import { createInMemoryTransportPair } from "@earendil-works/pi-mcp/testing";
 import { afterEach, describe, expect, it } from "vitest";
+import { trustsReadHints } from "../src/connectors.ts";
 import {
 	type ApprovalPreview,
 	McpProxy,
@@ -386,6 +387,35 @@ describe("MCP proxy: upstream connections", () => {
 		expect(await client.callTool("search", {})).toMatchObject({ content: [{ text: "ran search" }] });
 		expect(upstream.state.connects).toBe(2);
 		expect(logs.join("\n")).not.toContain("Bearer");
+	});
+
+	it("lets a trusted connector read without asking, and still asks before anything else", async () => {
+		const { open, previews } = await setup({
+			connectors: [connector({ mode: "read_write", readOnlyTools: [], trustsReadHints: true })],
+		});
+		const client = await open();
+		expect(await client.callTool("peek", {})).toMatchObject({ content: [{ text: "ran peek" }] });
+		expect(previews).toEqual([]);
+		await client.callTool("send", {});
+		await client.callTool("fetch", {});
+		expect(previews.map((preview) => preview.tool)).toEqual(["send", "fetch"]);
+	});
+
+	it("trusts read-only marks only for the pinned connector and command", () => {
+		const command = "/Users/andresalvarez/.local/bin/google-workspace-mcp";
+		expect(trustsReadHints("google-workspace", { command })).toBe(true);
+		expect(trustsReadHints("google-workspace", { command: "/tmp/other" })).toBe(false);
+		expect(trustsReadHints("google-workspace", { url: "https://example.com/mcp" })).toBe(false);
+		expect(trustsReadHints("notes", { command })).toBe(false);
+	});
+
+	it("asks before a server's own read-only tool when the connector is not trusted", async () => {
+		const { open, previews } = await setup({
+			connectors: [connector({ mode: "read_write", readOnlyTools: [] })],
+		});
+		const client = await open();
+		await client.callTool("peek", {});
+		expect(previews.map((preview) => preview.tool)).toEqual(["peek"]);
 	});
 
 	it("keeps the connection for the new session when the engine's old session goes away", async () => {

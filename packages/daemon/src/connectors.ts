@@ -662,6 +662,25 @@ export interface SignInTarget {
  * (S25.4). Secrets that files held before (`connectors.json`, the old sign-in home, and the
  * engine's `mcp-auth.json`) move into the app's store once, with {@link ConnectorStore.migrate}.
  */
+/**
+ * Local build: the one connector whose own read-only marks are trusted, pinned to its id and command.
+ * This pins the path, not what it runs: the agent's shell runs as the user, so it can replace that
+ * file. A proposal or `connectors.json` cannot widen it, but this is a convenience, not a boundary.
+ */
+const TRUSTED_READ_CONNECTOR = {
+	id: "google-workspace",
+	command: "/Users/andresalvarez/.local/bin/google-workspace-mcp",
+};
+
+/** Whether this connector's tools marked read-only by its server run without asking. */
+export function trustsReadHints(id: string, server: { url: string } | { command: string }): boolean {
+	return (
+		id === TRUSTED_READ_CONNECTOR.id &&
+		"command" in server &&
+		server.command === TRUSTED_READ_CONNECTOR.command
+	);
+}
+
 export class ConnectorStore {
 	readonly file: string;
 	readonly mcpFile: string;
@@ -959,6 +978,7 @@ export class ConnectorStore {
 			enabled: saved.enabled,
 			mode: saved.mode,
 			readOnlyTools: [...spec.readOnlyTools],
+			trustsReadHints: trustsReadHints(id, server),
 			server:
 				"url" in server
 					? { url: server.url }

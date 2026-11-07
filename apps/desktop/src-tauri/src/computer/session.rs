@@ -7,7 +7,7 @@
 
 use serde::Serialize;
 
-pub const SESSION_MS: u64 = 30 * 60 * 1000;
+pub const SESSION_MS: u64 = 8 * 60 * 60 * 1000;
 pub const YOLO_MS: u64 = 60 * 60 * 1000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -130,7 +130,7 @@ mod tests {
     }
 
     #[test]
-    fn granting_starts_thirty_minutes() {
+    fn granting_starts_the_full_session() {
         let mut session = Session::default();
         let event = session.grant(NOW);
         assert_eq!(event, StateEvent { active: true, ends_at: Some(NOW + SESSION_MS), reason: Some(Reason::Granted), ..StateEvent::default() });
@@ -207,9 +207,9 @@ mod tests {
         assert_eq!(session.expire(NOW + YOLO_MS), Some(StateEvent::default()));
         assert_eq!(session.expire(NOW + YOLO_MS + 1), None);
         // A session timeout and a yolo expiry at the same check are one event.
-        session.set_yolo(true, NOW);
-        session.grant(NOW + YOLO_MS - SESSION_MS);
-        let both = session.expire(NOW + YOLO_MS).unwrap();
+        session.grant(NOW);
+        session.set_yolo(true, NOW + SESSION_MS - YOLO_MS);
+        let both = session.expire(NOW + SESSION_MS).unwrap();
         assert_eq!((both.active, both.reason, both.yolo), (false, Some(Reason::Timeout), false));
     }
 

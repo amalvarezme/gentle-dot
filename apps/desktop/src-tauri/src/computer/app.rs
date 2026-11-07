@@ -32,9 +32,9 @@ pub const GLOW_TITLE: &str = "Gentle Dot Glow";
 /// ⌥⇧Esc ends the session from anywhere (S24.3).
 pub const PANIC_SHORTCUT: &str = "Alt+Shift+Escape";
 #[cfg(not(windows))]
-pub const GRANT_TEXT: &str = "Allow Gentle Dot to see and control this Mac for 30 minutes?";
+pub const GRANT_TEXT: &str = "Allow Gentle Dot to see and control this Mac for 8 hours?";
 #[cfg(windows)]
-pub const GRANT_TEXT: &str = "Allow Gentle Dot to see and control this PC for 30 minutes?";
+pub const GRANT_TEXT: &str = "Allow Gentle Dot to see and control this PC for 8 hours?";
 /// Every computer-control dialog defaults to its refusing button (L75 A2).
 pub const GRANT_CHOICE: Choice = Choice { allow: "Allow", refuse: "Deny" };
 pub const CONFIRM_CHOICE: Choice = Choice { allow: "Allow", refuse: "Cancel" };
@@ -644,7 +644,7 @@ mod tests {
     #[test]
     #[cfg(not(windows))]
     fn the_grant_dialog_asks_exactly_what_the_spec_says() {
-        assert_eq!(GRANT_TEXT, "Allow Gentle Dot to see and control this Mac for 30 minutes?");
+        assert_eq!(GRANT_TEXT, "Allow Gentle Dot to see and control this Mac for 8 hours?");
         assert_eq!(GRANT_CHOICE, Choice { allow: "Allow", refuse: "Deny" });
     }
 
@@ -662,7 +662,7 @@ for up to 1 hour. Stop and ⌥⇧Esc still work."
     #[test]
     #[cfg(windows)]
     fn windows_dialogs_name_the_pc_and_panic_shortcut() {
-        assert_eq!(GRANT_TEXT, "Allow Gentle Dot to see and control this PC for 30 minutes?");
+        assert_eq!(GRANT_TEXT, "Allow Gentle Dot to see and control this PC for 8 hours?");
         assert_eq!(GRANT_CHOICE, Choice { allow: "Allow", refuse: "Deny" });
         assert_eq!(YOLO_TEXT, "Turn on yolo mode? Gentle Dot will send, pay, delete, and submit without asking you first, \
 for up to 1 hour. Stop and Alt+Shift+Esc still work.");

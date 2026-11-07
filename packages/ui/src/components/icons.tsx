@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import logoUrl from "../assets/logo-labia.png";
 
 /** One stroke icon set for the header: 18 px, drawn in the button's text color. */
 function Icon({ children }: { children: ReactNode }) {
@@ -137,7 +138,7 @@ export function RoseGlyph() {
 	return (
 		<img
 			className="rose-glyph"
-			src="./logo-labia.png"
+			src={logoUrl}
 			alt="LIA UNAL"
 			width="18"
 			height="18"

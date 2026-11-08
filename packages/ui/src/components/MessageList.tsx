@@ -60,7 +60,7 @@ function Activities({ activities }: { activities: Activity[] }) {
 
 function ThinkingBlock({ thinking, streaming }: { thinking: string; streaming?: boolean }) {
 	const [open, setOpen] = useState(false);
-	const lines = thinking.trim().split("\n").map((l) => l.trim()).filter(Boolean);
+	const lines = thinking ? thinking.trim().split("\n").map((l) => l.trim()).filter(Boolean) : [];
 	const preview = lines.at(-1)?.replace(/^\*+|\*+$/g, "") || "";
 
 	return (
@@ -72,13 +72,13 @@ function ThinkingBlock({ thinking, streaming }: { thinking: string; streaming?: 
 				onClick={() => setOpen(!open)}
 			>
 				<span className={streaming ? "thinking-pulse" : "thinking-dot"} aria-hidden="true" />
-				<span className="thinking-label">{streaming ? "Thinking…" : "Thought process"}</span>
+				<span className="thinking-label">{streaming ? "Pensando…" : "Proceso de pensamiento"}</span>
 				{streaming && preview ? (
 					<span className="thinking-snippet">{preview}</span>
 				) : null}
 				<span className="thinking-arrow" aria-hidden="true">{open ? "▾" : "▸"}</span>
 			</button>
-			{open ? (
+			{open && thinking ? (
 				<div className="thinking-body">
 					<Markdown remarkPlugins={[remarkGfm]}>{thinking}</Markdown>
 				</div>
@@ -94,9 +94,11 @@ interface MessageListProps {
 	/** Offers "Show earlier" at the top, which calls `onShowEarlier`. */
 	hasEarlier?: boolean;
 	onShowEarlier?: () => void;
+	/** Whether the agent is busy/running an answer. */
+	busy?: boolean;
 }
 
-export function MessageList({ messages, queued = [], hasEarlier = false, onShowEarlier }: MessageListProps) {
+export function MessageList({ messages, queued = [], hasEarlier = false, onShowEarlier, busy = false }: MessageListProps) {
 	const end = useRef<HTMLDivElement>(null);
 	const last = messages.at(-1);
 	const lastEarlier = messages.findLastIndex((m) => m.earlier);
@@ -104,9 +106,9 @@ export function MessageList({ messages, queued = [], hasEarlier = false, onShowE
 	// biome-ignore lint/correctness/useExhaustiveDependencies: scroll whenever the newest content grows
 	useEffect(() => {
 		end.current?.scrollIntoView?.({ block: "end" });
-	}, [last?.id, last?.text, last?.thinking, last?.activities.length, last?.note, queued.length]);
+	}, [last?.id, last?.text, last?.thinking, last?.activities.length, last?.note, queued.length, busy]);
 
-	if (messages.length === 0 && queued.length === 0) {
+	if (messages.length === 0 && queued.length === 0 && !busy) {
 		return (
 			<div className="empty">
 				<p>Hi! What can I do for you?</p>
@@ -123,8 +125,8 @@ export function MessageList({ messages, queued = [], hasEarlier = false, onShowE
 			{messages.map((message, index) => (
 				<Fragment key={message.id}>
 					<article className={`message message-${message.role}`}>
-						{message.thinking ? (
-							<ThinkingBlock thinking={message.thinking} streaming={message.thinkingStreaming} />
+						{message.thinking || message.streaming ? (
+							<ThinkingBlock thinking={message.thinking ?? ""} streaming={message.thinkingStreaming ?? message.streaming} />
 						) : null}
 						{message.activities.length > 0 ? <Activities activities={message.activities} /> : null}
 						{message.text && message.role === "user" ? (
@@ -167,6 +169,11 @@ export function MessageList({ messages, queued = [], hasEarlier = false, onShowE
 					) : null}
 				</Fragment>
 			))}
+			{busy && (!messages.length || last?.role === "user") ? (
+				<article className="message message-assistant message-pending">
+					<ThinkingBlock thinking="" streaming={true} />
+				</article>
+			) : null}
 			{queued.map((text, i) => (
 				<article
 					// biome-ignore lint/suspicious/noArrayIndexKey: the same text can be queued twice

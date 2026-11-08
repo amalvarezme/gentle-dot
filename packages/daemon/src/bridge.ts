@@ -1257,7 +1257,10 @@ export class DotBridge {
 				...(attachments.length > 0 ? { attachments } : {}),
 			});
 		}
-		if (message?.role === "assistant") this.assistantId = `m${++this.nextMessage}`;
+		if (message?.role === "assistant") {
+			this.assistantId = `m${++this.nextMessage}`;
+			this.broadcast({ type: "thinking_delta", messageId: this.assistantId, delta: "" });
+		}
 	}
 
 	private onMessageUpdate(event: AgentRecord): void {

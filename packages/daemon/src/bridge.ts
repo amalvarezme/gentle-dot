@@ -1183,6 +1183,7 @@ export class DotBridge {
 					// The engine knows its model only once it is ready; windows that connected
 					// earlier (for example while it restarted) would show none until they asked.
 					this.broadcastModels();
+					this.rotateWhenIdle();
 				}
 				break;
 			case "interrupted":

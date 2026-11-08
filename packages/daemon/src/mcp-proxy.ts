@@ -38,6 +38,35 @@ import { type ConnectorMode, isReadOnlyTool } from "./extensions/approval-guard.
 import { NO_APP, SecretsUnavailableError } from "./secret-source.ts";
 import { type OsUser, stdioCommand } from "./vps.ts";
 
+const GOOGLE_WORKSPACE_READ_TOOLS = new Set([
+	"search_gmail_messages",
+	"get_gmail_message_content",
+	"get_gmail_messages_content_batch",
+	"get_gmail_thread_content",
+	"get_gmail_threads_content_batch",
+	"get_gmail_attachment_content",
+	"list_gmail_labels",
+	"list_gmail_filters",
+	"search_drive_files",
+	"get_drive_file_content",
+	"get_drive_file_download_url",
+	"list_drive_items",
+	"get_drive_file_permissions",
+	"check_drive_file_public_access",
+	"get_drive_shareable_link",
+	"search_docs",
+	"get_doc_content",
+	"list_docs_in_folder",
+	"get_doc_as_markdown",
+	"inspect_doc_structure",
+	"list_document_comments",
+	"list_spreadsheets",
+	"get_spreadsheet_info",
+	"read_sheet_values",
+	"list_sheet_tables",
+	"list_spreadsheet_comments",
+]);
+
 /** Where the engine reaches a connector: `/mcp/<id>`. */
 export const MCP_PREFIX = "/mcp/";
 
@@ -296,7 +325,10 @@ export class McpProxy {
 		if (!tool) tool = (await this.listTools(connector, signal)).find((t) => t.name === name);
 		if (!tool) throw new ProxyError(JSON_RPC_ERROR_CODES.invalidParams, `Unknown tool: ${name}`);
 		refuseHidden(connector, tool);
-		const trustedRead = connector.trustsReadHints === true && tool.annotations?.readOnlyHint === true;
+		const trustedRead =
+			connector.trustsReadHints === true &&
+			(tool.annotations?.readOnlyHint === true ||
+				(connector.id === "google-workspace" && GOOGLE_WORKSPACE_READ_TOOLS.has(tool.name)));
 		if (!trustedRead && !isReadOnlyTool(tool.name, tool.annotations?.readOnlyHint, connector.readOnlyTools)) {
 			const preview: ApprovalPreview = {
 				connectorId: connector.id,

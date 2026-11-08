@@ -12,7 +12,7 @@ export interface RotationLimits {
 	compactions: number;
 }
 
-export const DEFAULT_ROTATION: RotationLimits = { bytes: 20 * 1024 * 1024, compactions: 10 };
+export const DEFAULT_ROTATION: RotationLimits = { bytes: 800 * 1024, compactions: 3 };
 
 /** `customType` of the hidden message that carries the earlier session into the new one. */
 export const HANDOFF_TYPE = "gentle-dot.handoff";

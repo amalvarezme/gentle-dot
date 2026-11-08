@@ -215,8 +215,8 @@ describe("rotation guards", () => {
 		expect(requests).toEqual([]);
 	});
 
-	it("reads its limits from the environment, defaulting to 20 MB or 10 compactions", () => {
-		expect(DEFAULT_ROTATION).toEqual({ bytes: 20 * 1024 * 1024, compactions: 10 });
+	it("reads its limits from the environment, defaulting to 800 KB or 3 compactions", () => {
+		expect(DEFAULT_ROTATION).toEqual({ bytes: 800 * 1024, compactions: 3 });
 		expect(rotationLimits({})).toEqual(DEFAULT_ROTATION);
 		expect(rotationLimits({ GENTLE_DOT_ROTATE_BYTES: "4096", GENTLE_DOT_ROTATE_COMPACTIONS: "3" })).toEqual({
 			bytes: 4096,

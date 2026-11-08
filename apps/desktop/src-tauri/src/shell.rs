@@ -971,11 +971,9 @@ pub fn run() {
                     "gentle-dot: native Wayland: the desktop places the windows and owns shortcuts; bind `gentle-dot --toggle` (docs/linux-testing.md)"
                 );
             }
-            // Started by the shortcut while not running: open the panel right away.
+            // On launch (from Finder, Applications, Spotlight, or CLI), open the panel right away.
             let args: Vec<String> = std::env::args().collect();
-            if platform::launch_request(&args) == LaunchRequest::Toggle {
-                handle_launch(&handle, &args);
-            }
+            handle_launch(&handle, &args);
             Ok(())
         })
         .build(tauri::generate_context!())

@@ -180,7 +180,10 @@ export function ChatSurface({
 				<span className={`state-dot state-${state.agentState}`} aria-hidden="true" />
 				{conversations ? (
 					<>
-						<h1 className="gradient-text">{activeTitle(state)}</h1>
+						<h1 className="assistant-name">
+							<RoseGlyph />
+							<span className="gradient-text">{activeTitle(state)}</span>
+						</h1>
 						<button
 							type="button"
 							className="icon"

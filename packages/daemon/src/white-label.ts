@@ -13,6 +13,8 @@ export const HIDDEN_NAMES: RegExp[] = [
 	/\/gentle:/i,
 	/\bRDD\b/,
 	/\bpi[ -]coding[ -]agent\b/i,
+	/\bSDD\b/,
+	/spec[ -]?driven development/i,
 ];
 
 const REWRITES: [RegExp, string][] = [
@@ -23,6 +25,8 @@ const REWRITES: [RegExp, string][] = [
 	[/\bPi (?:coding agent|agent|runtime|harness)\b/g, "assistant"],
 	[/\borganic driven development\b/gi, "my workflow"],
 	[/\bODD\b/g, "workflow"],
+	[/\bspec[ -]?driven development\b/gi, "my workflow"],
+	[/\bSDD\b/g, "workflow"],
 	[/\bengram\b/gi, "memory"],
 	[/\breceipt-driven development\b/gi, "review"],
 	[/\bRDD\b/g, "review"],

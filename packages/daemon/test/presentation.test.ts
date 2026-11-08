@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeTool } from "../src/presentation.ts";
+import { describeTool, thinkingOf } from "../src/presentation.ts";
 
 describe("describeTool", () => {
 	it("titles a bash call by its status", () => {
@@ -58,5 +58,30 @@ describe("describeTool", () => {
 		expect(describeTool("mystery", {}, "running").title).toBe("Working");
 		expect(describeTool("mystery", {}, "done").title).toBe("Finished");
 		expect(describeTool("mystery", {}, "failed").title).toBe("Failed");
+	});
+
+	it("titles bash commands and tools with specific parameters", () => {
+		expect(describeTool("bash", { command: "git status" }, "running").title).toBe("Running: git status");
+		expect(describeTool("bash", { command: "pnpm test" }, "done").title).toBe("Ran: pnpm test");
+		expect(describeTool("search_drive_files", { query: "Tatiana" }, "running").title).toBe('Searching Drive: "Tatiana"');
+		expect(describeTool("get_doc_content", { document_id: "doc123" }, "done").title).toBe("Read doc: doc123");
+		expect(describeTool("subagent_run", { label: "Find Hermes rules" }, "running").title).toBe('Asking helper: "Find Hermes rules"');
+		expect(describeTool("screenshot", {}, "done").title).toBe("Took screenshot");
+		expect(describeTool("todo", { action: "write", tasks: [1, 2] }, "running").title).toBe("Planning tasks (2 items)");
+	});
+
+	it("extracts thinking blocks from message content", () => {
+		expect(thinkingOf({ content: [{ type: "thinking", thinking: "Evaluating options..." }] })).toBe("Evaluating options...");
+		expect(thinkingOf({ content: "plain string" })).toBe("");
+		expect(thinkingOf({ content: [{ type: "text", text: "hello" }] })).toBe("");
+		expect(
+			thinkingOf({
+				content: [
+					{ type: "thinking", thinking: "Step 1" },
+					{ type: "text", text: "hello" },
+					{ type: "thinking", thinking: "Step 2" },
+				],
+			}),
+		).toBe("Step 1\n\nStep 2");
 	});
 });

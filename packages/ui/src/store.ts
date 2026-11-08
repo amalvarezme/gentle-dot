@@ -96,6 +96,8 @@ export interface ChatMessage {
 	id: string;
 	role: "user" | "assistant";
 	text: string;
+	thinking?: string;
+	thinkingStreaming?: boolean;
 	streaming: boolean;
 	activities: Activity[];
 	/** How an answer ended when it did not finish normally. */
@@ -263,15 +265,29 @@ function reduceServer(state: DotState, message: ServerMessage): DotState {
 					},
 				],
 			};
+		case "thinking_delta":
+			return updateAssistant(state, message.messageId, (m) => ({
+				...m,
+				thinking: (m.thinking ?? "") + message.delta,
+				thinkingStreaming: true,
+				streaming: true,
+			}));
 		case "message_delta":
 			return updateAssistant(state, message.messageId, (m) => ({
 				...m,
 				text: m.text + message.delta,
+				thinkingStreaming: false,
 				streaming: true,
 			}));
 		case "message_done":
 			return updateAssistant(state, message.messageId, (m) => {
-				const done: ChatMessage = { ...m, text: message.text, streaming: false };
+				const done: ChatMessage = {
+					...m,
+					text: message.text,
+					streaming: false,
+					thinkingStreaming: false,
+					...(message.thinking !== undefined ? { thinking: message.thinking } : {}),
+				};
 				if (message.error !== undefined) done.note = { kind: "error", text: message.error };
 				else if (message.stopped) done.note = { kind: "stopped", text: "Stopped." };
 				return done;

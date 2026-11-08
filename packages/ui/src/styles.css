@@ -1023,20 +1023,108 @@ html[data-effects="none"] .chat-panel {
 	}
 }
 
+/* Thinking process block */
+.thinking {
+	margin-bottom: 8px;
+}
+
+.thinking-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px;
+	border-radius: var(--radius-pill);
+	background: var(--surface);
+	border: 1px solid var(--line);
+	color: var(--muted);
+	font-size: 11px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.thinking-toggle:hover {
+	color: var(--text);
+	border-color: rgba(255, 255, 255, 0.2);
+}
+
+.thinking-pulse {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--accent);
+	animation: pulse 1s infinite;
+}
+
+.thinking-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--muted);
+	opacity: 0.6;
+}
+
+.thinking-label {
+	font-weight: 500;
+}
+
+.thinking-snippet {
+	max-width: 220px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-style: italic;
+	opacity: 0.8;
+	font-size: 11px;
+}
+
+.thinking-arrow {
+	font-size: 9px;
+	opacity: 0.7;
+	margin-left: 2px;
+}
+
+.thinking-body {
+	margin: 6px 0 10px;
+	padding: 10px 14px;
+	border-radius: var(--radius-sm);
+	background: rgba(255, 255, 255, 0.03);
+	border-left: 2px solid var(--accent);
+	color: #c4c4cc;
+	font-size: 12px;
+	line-height: 1.5;
+	max-height: 260px;
+	overflow-y: auto;
+}
+
+.thinking-body p {
+	margin: 4px 0;
+}
+
+/* Intermediate activities list */
 .activities {
-	margin-bottom: 6px;
+	margin-bottom: 8px;
 }
 
 .activities-summary {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
-	padding: 3px 11px;
+	padding: 4px 11px;
 	border-radius: var(--radius-pill);
+	background: var(--surface);
+	border: 1px solid var(--line);
 	color: var(--muted);
 	font-size: 12px;
 	font-weight: 500;
 	line-height: 16px;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.activities-summary:hover {
+	color: var(--text);
+	border-color: rgba(255, 255, 255, 0.2);
 }
 
 .activities-summary .pulse {
@@ -1047,11 +1135,50 @@ html[data-effects="none"] .chat-panel {
 	animation: pulse 1s var(--ease) infinite;
 }
 
-.activities ul {
-	margin: 6px 0 0;
-	padding-left: 18px;
+.summary-arrow {
+	font-size: 9px;
+	opacity: 0.7;
+	margin-left: 2px;
+}
+
+.activities-list {
+	margin: 6px 0 8px;
+	padding: 6px 10px;
+	list-style: none;
+	border-radius: var(--radius-sm);
+	background: rgba(255, 255, 255, 0.02);
+	border: 1px solid var(--line);
 	color: var(--muted);
 	font-size: 12px;
+	max-height: 200px;
+	overflow-y: auto;
+}
+
+.activities-list .activity {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 3px 0;
+}
+
+.activity-status-icon {
+	font-size: 11px;
+	line-height: 1;
+	width: 14px;
+	text-align: center;
+}
+
+.activity-status-icon.status-done {
+	color: var(--green, #4ade80);
+}
+
+.activity-status-icon.status-failed {
+	color: var(--red);
+}
+
+.activity-status-icon.status-running {
+	color: var(--accent);
+	animation: pulse 1s infinite;
 }
 
 .activity-failed {

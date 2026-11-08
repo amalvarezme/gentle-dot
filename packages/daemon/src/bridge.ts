@@ -34,7 +34,7 @@ import {
 } from "./conversations.ts";
 import { directAccess, type EngineAccess } from "./engine-access.ts";
 import { DRAFT_STATUS_KEY } from "./extensions/approval-guard.ts";
-import { describeTool, textOf } from "./presentation.ts";
+import { describeTool, textOf, thinkingOf } from "./presentation.ts";
 import {
 	LiveModelSwitch,
 	ProfileError,
@@ -1262,6 +1262,11 @@ export class DotBridge {
 
 	private onMessageUpdate(event: AgentRecord): void {
 		const update = event.assistantMessageEvent as { type?: string; delta?: unknown } | undefined;
+		if (update?.type === "thinking_delta" && typeof update.delta === "string") {
+			this.assistantId ??= `m${++this.nextMessage}`;
+			this.broadcast({ type: "thinking_delta", messageId: this.assistantId, delta: update.delta });
+			return;
+		}
 		if (update?.type !== "text_delta" || typeof update.delta !== "string") return;
 		this.assistantId ??= `m${++this.nextMessage}`;
 		this.broadcast({ type: "message_delta", messageId: this.assistantId, delta: update.delta });
@@ -1274,14 +1279,16 @@ export class DotBridge {
 		if (message?.role !== "assistant") return;
 		const messageId = this.assistantId ?? `m${++this.nextMessage}`;
 		const text = presentText(textOf(message));
+		const rawThinking = thinkingOf(message);
+		const thinking = rawThinking ? presentText(rawThinking) : undefined;
 		// The engine ends a stopped answer as "aborted", or as an error when a session switch tore it down.
 		if (message.stopReason === "aborted" || (message.stopReason === "error" && this.stopRequested)) {
-			this.broadcast({ type: "message_done", messageId, text, stopped: true });
+			this.broadcast({ type: "message_done", messageId, text, ...(thinking ? { thinking } : {}), stopped: true });
 		} else if (message.stopReason === "error") {
 			this.log(`assistant error: ${message.errorMessage ?? "unknown"}`);
-			this.broadcast({ type: "message_done", messageId, text, error: ANSWER_FAILED });
+			this.broadcast({ type: "message_done", messageId, text, ...(thinking ? { thinking } : {}), error: ANSWER_FAILED });
 		} else {
-			this.broadcast({ type: "message_done", messageId, text });
+			this.broadcast({ type: "message_done", messageId, text, ...(thinking ? { thinking } : {}) });
 		}
 	}
 

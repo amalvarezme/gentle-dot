@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import type { Activity, ConversationSummary, HistoryMessage } from "@gentle-dot/protocol";
-import { describeTool, textOf } from "./presentation.ts";
+import { describeTool, textOf, thinkingOf } from "./presentation.ts";
 import { splitAttachments } from "./uploads.ts";
 import { presentText } from "./white-label.ts";
 
@@ -194,7 +194,9 @@ export function historyFromMessages(messages: unknown[]): HistoryMessage[] {
 			history.push(turn);
 		}
 		const text = presentText(textOf(m));
+		const thinking = presentText(thinkingOf(m));
 		if (text) turn.text = turn.text ? `${turn.text}\n\n${text}` : text;
+		if (thinking) turn.thinking = turn.thinking ? `${turn.thinking}\n\n${thinking}` : thinking;
 		turn.activities.push(...activitiesOf(m, failed));
 	}
 	return history;

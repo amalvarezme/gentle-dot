@@ -39,16 +39,49 @@ function Activities({ activities }: { activities: Activity[] }) {
 				onClick={() => setOpen(!open)}
 			>
 				<span className={running ? "pulse" : ""} aria-hidden="true" />
-				{running ? running.title : summarize(activities)}
+				<span className="summary-label">{running ? running.title : summarize(activities)}</span>
+				<span className="summary-arrow" aria-hidden="true">{open ? "▾" : "▸"}</span>
 			</button>
 			{open ? (
-				<ul>
+				<ul className="activities-list">
 					{activities.map((a) => (
 						<li key={a.id} className={`activity activity-${a.status}`}>
-							{a.title}
+							<span className={`activity-status-icon status-${a.status}`} aria-hidden="true">
+								{a.status === "done" ? "✓" : a.status === "failed" ? "✕" : "●"}
+							</span>
+							<span className="activity-title">{a.title}</span>
 						</li>
 					))}
 				</ul>
+			) : null}
+		</div>
+	);
+}
+
+function ThinkingBlock({ thinking, streaming }: { thinking: string; streaming?: boolean }) {
+	const [open, setOpen] = useState(false);
+	const lines = thinking.trim().split("\n").map((l) => l.trim()).filter(Boolean);
+	const preview = lines.at(-1)?.replace(/^\*+|\*+$/g, "") || "";
+
+	return (
+		<div className="thinking">
+			<button
+				type="button"
+				className="thinking-toggle"
+				aria-expanded={open}
+				onClick={() => setOpen(!open)}
+			>
+				<span className={streaming ? "thinking-pulse" : "thinking-dot"} aria-hidden="true" />
+				<span className="thinking-label">{streaming ? "Thinking…" : "Thought process"}</span>
+				{streaming && preview ? (
+					<span className="thinking-snippet">{preview}</span>
+				) : null}
+				<span className="thinking-arrow" aria-hidden="true">{open ? "▾" : "▸"}</span>
+			</button>
+			{open ? (
+				<div className="thinking-body">
+					<Markdown remarkPlugins={[remarkGfm]}>{thinking}</Markdown>
+				</div>
 			) : null}
 		</div>
 	);
@@ -71,7 +104,7 @@ export function MessageList({ messages, queued = [], hasEarlier = false, onShowE
 	// biome-ignore lint/correctness/useExhaustiveDependencies: scroll whenever the newest content grows
 	useEffect(() => {
 		end.current?.scrollIntoView?.({ block: "end" });
-	}, [last?.id, last?.text, last?.activities.length, last?.note, queued.length]);
+	}, [last?.id, last?.text, last?.thinking, last?.activities.length, last?.note, queued.length]);
 
 	if (messages.length === 0 && queued.length === 0) {
 		return (
@@ -90,6 +123,9 @@ export function MessageList({ messages, queued = [], hasEarlier = false, onShowE
 			{messages.map((message, index) => (
 				<Fragment key={message.id}>
 					<article className={`message message-${message.role}`}>
+						{message.thinking ? (
+							<ThinkingBlock thinking={message.thinking} streaming={message.thinkingStreaming} />
+						) : null}
 						{message.activities.length > 0 ? <Activities activities={message.activities} /> : null}
 						{message.text && message.role === "user" ? (
 							<div className="message-body message-plain">{message.text}</div>

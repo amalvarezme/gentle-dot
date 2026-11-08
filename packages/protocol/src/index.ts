@@ -68,6 +68,7 @@ export interface HistoryMessage {
 	id: string;
 	role: "user" | "assistant";
 	text: string;
+	thinking?: string;
 	activities: Activity[];
 	/** Files the user sent with the message. */
 	attachments?: AttachmentInfo[];
@@ -420,10 +421,12 @@ export type ServerPayload =
 	| { type: "agent_state"; state: AgentState }
 	| { type: "user_message"; messageId: string; text: string; attachments?: AttachmentInfo[] }
 	| { type: "message_delta"; messageId: string; delta: string }
+	| { type: "thinking_delta"; messageId: string; delta: string }
 	| {
 			type: "message_done";
 			messageId: string;
 			text: string;
+			thinking?: string;
 			/** The answer was stopped on purpose (Stop, or switching conversations). */
 			stopped?: true;
 			/** The answer failed; a plain-language explanation for the chat. */

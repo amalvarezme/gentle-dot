@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
 	type AgentState,
@@ -313,6 +313,7 @@ export class DotBridge {
 			this.deliver(client, { type: "connector_draft", draft });
 		if (this.interrupted) this.deliver(client, { type: "interrupted" });
 		for (const notice of this.notices) this.deliver(client, notice);
+		void this.sendContextUsage(client);
 		return () => {
 			this.clients.delete(client);
 			this.clientIds.delete(clientId);
@@ -635,11 +636,18 @@ export class DotBridge {
 					...this.engine(() => pageHistory(this.chain(), this.pageSize(), message.before)),
 				});
 				return;
+			case "compact":
+				await this.compactConversation(client);
+				return;
 		}
 	}
 
-	/** `/login`, `/profiles`, and `/connectors` open their screen instead of reaching the assistant. */
+	/** `/login`, `/profiles`, `/connectors`, and `/compact` open their screen or action instead of reaching the assistant. */
 	private async openScreen(client: BridgeClient, text: string): Promise<boolean> {
+		if (/^\s*\/compact\s*$/i.test(text)) {
+			await this.compactConversation(client);
+			return true;
+		}
 		if (/^\s*\/login\s*$/i.test(text)) {
 			await this.sendProviders(client, true);
 			return true;
@@ -1125,7 +1133,125 @@ export class DotBridge {
 		void this.changeConversation(async () => {
 			if (!(await this.rotator.maybeRotate())) return;
 			this.broadcast({ type: "history", ...this.conversationRef(), ...(await this.currentHistory()) });
+			void this.broadcastContextUsage();
 		});
+	}
+
+	/** Compacts the conversation context via handoff/rotation and preserves memories in Engram. */
+	private async compactConversation(client: BridgeClient): Promise<void> {
+		if (this.supervisor.busy || this.sending > 0) {
+			this.deliver(client, {
+				type: "toast",
+				level: "warning",
+				message: "El asistente está ocupado. Espera a que termine la respuesta para compactar.",
+			});
+			return;
+		}
+
+		await this.changeConversation(async () => {
+			const rotated = await this.rotator.forceRotate();
+			if (rotated) {
+				this.broadcast({ type: "history", ...this.conversationRef(), ...(await this.currentHistory()) });
+				this.broadcast(this.conversationsPayload());
+				void this.broadcastContextUsage();
+				this.deliver(client, {
+					type: "toast",
+					level: "info",
+					message: "Contexto compactado exitosamente. La sesión continúa con menor consumo de tokens.",
+				});
+			} else {
+				this.deliver(client, {
+					type: "toast",
+					level: "warning",
+					message: "No fue posible compactar el contexto en este momento (la sesión es muy reciente o está inactiva).",
+				});
+			}
+		});
+	}
+
+	/** Broadcasts the current session's context usage to all clients. */
+	private async broadcastContextUsage(): Promise<void> {
+		const usage = await this.getContextUsage();
+		if (usage) {
+			this.broadcast({
+				type: "context_usage",
+				tokens: usage.tokens,
+				contextWindow: usage.contextWindow,
+				percent: usage.percent,
+			});
+		}
+	}
+
+	/** Sends context usage to a specific client. */
+	private async sendContextUsage(client: BridgeClient): Promise<void> {
+		const usage = await this.getContextUsage();
+		if (usage) {
+			this.deliver(client, {
+				type: "context_usage",
+				tokens: usage.tokens,
+				contextWindow: usage.contextWindow,
+				percent: usage.percent,
+			});
+		}
+	}
+
+	/** Gets current context usage estimate from pi-coding-agent RPC or session file stats. */
+	private async getContextUsage(): Promise<{ tokens: number; contextWindow: number; percent: number } | undefined> {
+		try {
+			if (this.supervisor.state === "ready" && !this.supervisor.busy) {
+				const res = await this.supervisor.request({ type: "get_session_stats" });
+				const data = res.data as
+					| {
+							contextUsage?: { tokens?: number | null; contextWindow?: number; percent?: number | null };
+							tokens?: { total?: number };
+					  }
+					| undefined;
+				if (
+					data?.contextUsage &&
+					typeof data.contextUsage.tokens === "number" &&
+					typeof data.contextUsage.percent === "number"
+				) {
+					return {
+						tokens: data.contextUsage.tokens,
+						contextWindow: data.contextUsage.contextWindow || 200_000,
+						percent: data.contextUsage.percent,
+					};
+				}
+				if (data?.contextUsage?.contextWindow) {
+					const window = data.contextUsage.contextWindow;
+					let tokens = 0;
+					const sessionFile = this.supervisor.sessionFile;
+					if (sessionFile) {
+						try {
+							const stats = statSync(sessionFile);
+							tokens = Math.round(stats.size / 3.5);
+						} catch {
+							tokens = data.tokens?.total ?? 0;
+						}
+					} else {
+						tokens = data.tokens?.total ?? 0;
+					}
+					const percent = Math.min(100, Math.round((tokens / window) * 100));
+					return { tokens, contextWindow: window, percent };
+				}
+			}
+		} catch {
+			// Supervisor might be busy or starting
+		}
+
+		const sessionFile = this.supervisor.sessionFile;
+		if (sessionFile) {
+			try {
+				const stats = statSync(sessionFile);
+				const tokens = Math.round(stats.size / 3.5);
+				const contextWindow = 200_000;
+				const percent = Math.min(100, Math.round((tokens / contextWindow) * 100));
+				return { tokens, contextWindow, percent };
+			} catch {
+				return undefined;
+			}
+		}
+		return undefined;
 	}
 
 	/**
@@ -1184,6 +1310,7 @@ export class DotBridge {
 					// earlier (for example while it restarted) would show none until they asked.
 					this.broadcastModels();
 					this.rotateWhenIdle();
+					void this.broadcastContextUsage();
 				}
 				break;
 			case "interrupted":
@@ -1220,6 +1347,7 @@ export class DotBridge {
 				if (this.restartPending) this.restartAgent();
 				else if (this.sending > 0) this.rotationDeferred = true;
 				else this.rotateWhenIdle();
+				void this.broadcastContextUsage();
 				break;
 			case "extension_ui_request":
 				this.onUiRequest(event);

@@ -182,6 +182,26 @@ export class SessionRotator {
 		}
 	}
 
+	/** Immediately rotates into a fresh handoff session regardless of size limits. */
+	async forceRotate(): Promise<boolean> {
+		if (this.rotating || !this.options.canRotate()) return false;
+		const file = this.supervisor.sessionFile;
+		if (!file) return false;
+		this.rotating = true;
+		try {
+			const state = (await this.supervisor.request({ type: "get_state" })).data as
+				| { isStreaming?: boolean; isCompacting?: boolean }
+				| undefined;
+			if (state?.isStreaming || state?.isCompacting || !this.options.canRotate()) return false;
+			return await this.rotate(file);
+		} catch (error) {
+			this.log(`forced rotation failed, the chat stays in ${file}: ${(error as Error).message}`);
+			return false;
+		} finally {
+			this.rotating = false;
+		}
+	}
+
 	private async rotate(file: string): Promise<boolean> {
 		const previous = [...this.supervisor.previousSessions, file];
 		let seed: string;

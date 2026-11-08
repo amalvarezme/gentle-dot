@@ -215,6 +215,13 @@ describe("rotation guards", () => {
 		expect(requests).toEqual([]);
 	});
 
+	it("forceRotate checks state even when below limits", async () => {
+		const { supervisor, requests } = stub(compactedFile(0));
+		const rotator = new SessionRotator(supervisor, { limits: DEFAULT_ROTATION, canRotate: () => true });
+		await rotator.forceRotate();
+		expect(requests).toContain("get_state");
+	});
+
 	it("reads its limits from the environment, defaulting to 800 KB or 3 compactions", () => {
 		expect(DEFAULT_ROTATION).toEqual({ bytes: 800 * 1024, compactions: 3 });
 		expect(rotationLimits({})).toEqual(DEFAULT_ROTATION);

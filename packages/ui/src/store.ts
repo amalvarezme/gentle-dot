@@ -114,6 +114,12 @@ export interface Notice {
 	message: string;
 }
 
+export interface ContextUsageState {
+	tokens: number;
+	contextWindow: number;
+	percent: number;
+}
+
 export interface DotState {
 	connection: ConnectionStatus;
 	agentState: AgentState;
@@ -141,6 +147,8 @@ export interface DotState {
 	voiceReplies: VoiceReply[];
 	/** On a server without the desktop app (S25.8): connector changes and approvals need the web PIN. */
 	pin?: PinStatus;
+	/** Current token context consumption in the conversation. */
+	contextUsage?: ContextUsageState;
 }
 
 export type DotAction =
@@ -247,6 +255,15 @@ function reduceServer(state: DotState, message: ServerMessage): DotState {
 		}
 		case "pin_status":
 			return { ...state, pin: message.pin };
+		case "context_usage":
+			return {
+				...state,
+				contextUsage: {
+					tokens: message.tokens,
+					contextWindow: message.contextWindow,
+					percent: message.percent,
+				},
+			};
 		case "agent_state":
 			return { ...state, agentState: message.state };
 		case "user_message":

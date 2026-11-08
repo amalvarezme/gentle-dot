@@ -61,6 +61,11 @@ export function Composer({
 	async function submit() {
 		const value = text.trim();
 		if ((!value && files.length === 0) || disabled || uploading || blocked) return;
+		if (value === "/compact") {
+			send({ type: "compact" });
+			setText("");
+			return;
+		}
 		// Files upload on send; a failed one keeps the message so sending again retries it.
 		const refs = files.length > 0 ? await attachments?.upload() : undefined;
 		if (files.length > 0 && !refs) return;

@@ -12,6 +12,7 @@ import { Composer } from "./Composer.tsx";
 import { ComputerBanner, type ComputerControls } from "./Computer.tsx";
 import { ConnectorDraftCard } from "./ConnectorDraftCard.tsx";
 import { ConnectorsPanel } from "./ConnectorsPanel.tsx";
+import { ContextBar } from "./ContextBar.tsx";
 import {
 	AccountsIcon,
 	CollapseIcon,
@@ -438,13 +439,20 @@ export function ChatSurface({
 				</div>
 			) : null}
 
-			<ModelPicker
-				models={state.models}
-				send={send}
-				dispatch={dispatch}
-				disabled={!ready}
-				{...(state.model ? { model: state.model } : {})}
-			/>
+			<div className="chat-bottom-controls">
+				<ModelPicker
+					models={state.models}
+					send={send}
+					dispatch={dispatch}
+					disabled={!ready}
+					{...(state.model ? { model: state.model } : {})}
+				/>
+				<ContextBar
+					usage={state.contextUsage}
+					onCompact={() => send({ type: "compact" })}
+					disabled={!ready || isBusy(state.agentState)}
+				/>
+			</div>
 			<Composer
 				busy={isBusy(state.agentState)}
 				disabled={!ready}

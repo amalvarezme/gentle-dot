@@ -399,7 +399,9 @@ export type ClientMessage =
 	/** One connector change from the web page on a server, with the PIN ({@link isPinCommand}). */
 	| { type: "pin_command"; pin: string; command: ClientMessage }
 	/** Allows a `pin` ask with the PIN. */
-	| { type: "pin_approve"; requestId: string; pin: string };
+	| { type: "pin_approve"; requestId: string; pin: string }
+	/** Compacts the conversation context and preserves memories in Engram. */
+	| { type: "compact" };
 
 export type ServerPayload =
 	| {
@@ -448,6 +450,12 @@ export type ServerPayload =
 	| { type: "interrupted" }
 	| ({ type: "queue" } & MessageQueue)
 	| { type: "error"; code: string; message: string }
+	| {
+			type: "context_usage";
+			tokens: number;
+			contextWindow: number;
+			percent: number;
+	  }
 	/** `voice` changes with the accounts: an OpenAI API key turns it on. */
 	| { type: "auth_providers"; providers: AuthProvider[]; open?: boolean; voice?: VoiceCapability }
 	| { type: "auth_prompt"; prompt: AuthPrompt }
@@ -721,6 +729,7 @@ export function parseClientMessage(raw: string): ClientMessage | undefined {
 		case "profile_import":
 		case "abort":
 		case "new_conversation":
+		case "compact":
 		case "list_conversations":
 		case "get_history":
 			return { type: m.type };

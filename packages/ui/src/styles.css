@@ -2105,3 +2105,113 @@ html[data-surface="glow"] body {
 	border-color: var(--accent);
 	color: var(--accent);
 }
+
+/* ---------- Chat Bottom Controls & Context Bar ---------- */
+
+.chat-bottom-controls {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin: 0 12px 6px;
+	position: relative;
+	z-index: 2;
+}
+
+.chat-fullscreen .chat-bottom-controls {
+	margin-inline: max(12px, calc((100% - var(--reading-width)) / 2));
+}
+
+.chat-bottom-controls .model-picker {
+	margin: 0;
+}
+
+.context-bar {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-pill);
+	padding: 3px 10px 3px 12px;
+	font-size: 11px;
+	color: var(--muted);
+	backdrop-filter: blur(8px);
+	user-select: none;
+}
+
+.context-indicator {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.context-label {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	letter-spacing: -0.2px;
+}
+
+.context-meter {
+	width: 56px;
+	height: 6px;
+	background: rgba(255, 255, 255, 0.1);
+	border-radius: 3px;
+	overflow: hidden;
+}
+
+.context-fill {
+	height: 100%;
+	border-radius: 3px;
+	transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.context-fill.level-low {
+	background: #38bdf8;
+}
+
+.context-fill.level-medium {
+	background: var(--yellow);
+}
+
+.context-fill.level-high {
+	background: var(--red);
+}
+
+.compact-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	border-radius: var(--radius-pill);
+	color: var(--text);
+	font-size: 11px;
+	padding: 2px 8px;
+	cursor: pointer;
+	transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.compact-btn:hover:not(:disabled) {
+	background: rgba(255, 255, 255, 0.16);
+	border-color: rgba(255, 255, 255, 0.3);
+}
+
+.compact-btn:active:not(:disabled) {
+	transform: scale(0.96);
+}
+
+.compact-btn:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+
+.compact-icon {
+	font-size: 11px;
+	line-height: 1;
+}
+
+.compact-text {
+	font-size: 11px;
+	font-weight: 500;
+}

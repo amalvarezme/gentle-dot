@@ -45,6 +45,8 @@ export interface AuthRuntime {
 		options?: { getDeviceId?: () => string },
 	): Promise<unknown>;
 	logout(providerId: string): Promise<void>;
+	isUsingSubscription?(providerId: string): boolean;
+	getAuth?(providerId: string): Promise<unknown>;
 	/**
 	 * The connected OpenAI API key, for voice (S30.2). Never the "Sign in with ChatGPT" token:
 	 * OpenAI documents that sign-in does not support transcription.
@@ -55,6 +57,109 @@ export interface AuthRuntime {
 /** The assistant's own engine home: never the user's Gentle Shell or Pi home unless explicitly overridden. */
 export function resolveAgentHome(env: NodeJS.ProcessEnv, dataDir: string): string {
 	return resolve(env.GENTLE_DOT_AGENT_HOME ?? join(dataDir, "agent"));
+}
+
+export interface NanProviderConfig {
+	id: string;
+	name: string;
+	baseUrl?: string;
+	auth: {
+		apiKey?: {
+			name: string;
+			login?(interaction: {
+				signal: AbortSignal;
+				prompt(req: { type: string; message: string; signal?: AbortSignal }): Promise<string>;
+			}): Promise<{ type: string; key: string }>;
+			resolve?(input: {
+				ctx: { env(name: string): Promise<string | undefined> };
+				credential?: { type: string; key?: string; access?: string };
+				signal: AbortSignal;
+			}): Promise<unknown>;
+		};
+		oauth?: {
+			name: string;
+			isSubscription?: boolean;
+			loginLabel?: string;
+			login(interaction: {
+				signal: AbortSignal;
+				prompt(req: { type: string; message: string; signal?: AbortSignal }): Promise<string>;
+			}): Promise<{ type: string; access: string; refresh: string; expires: number }>;
+			refresh(credential: unknown): Promise<unknown>;
+			toAuth(credential: { access: string }): Promise<{ apiKey: string }>;
+		};
+	};
+	refreshModels?(context: {
+		credential?: { type: string; key?: string; access?: string };
+		allowNetwork?: boolean;
+		signal: AbortSignal;
+		publish?: (opts: { update: () => void }) => Promise<void>;
+	}): Promise<void>;
+}
+
+/**
+ * Enhances gentle-pi's NaN provider config so users can sign in with their NaN Builders subscription
+ * under "Use a subscription" as in Pi / Gentle Shell, while preserving API key compatibility.
+ */
+export function enhanceNanProviderConfig(base: NanProviderConfig): NanProviderConfig {
+	return {
+		...base,
+		auth: {
+			...base.auth,
+			apiKey: base.auth?.apiKey
+				? {
+						...base.auth.apiKey,
+						resolve: async (input) => {
+							const effectiveCredential =
+								input.credential?.type === "oauth" && input.credential.access
+									? { type: "api_key", key: input.credential.access }
+									: input.credential;
+							return base.auth.apiKey?.resolve?.({ ...input, credential: effectiveCredential });
+						},
+					}
+				: undefined,
+			oauth: {
+				name: "NaN Builders (subscription)",
+				isSubscription: true,
+				loginLabel: "Sign in with NaN Builders",
+				async login(interaction) {
+					interaction.signal.throwIfAborted();
+					const entered = await interaction.prompt({
+						type: "secret",
+						message: "Enter NaN Builders subscription key",
+						signal: interaction.signal,
+					});
+					interaction.signal.throwIfAborted();
+					const key = entered.trim();
+					if (!key) throw new Error("NaN Builders requires a non-empty subscription key");
+					return {
+						type: "oauth",
+						access: key,
+						refresh: key,
+						expires: Date.now() + 365 * 24 * 60 * 60 * 1000,
+					};
+				},
+				async refresh(credential) {
+					return credential;
+				},
+				async toAuth(credential) {
+					return { apiKey: credential.access };
+				},
+			},
+		},
+		refreshModels: async (context) => {
+			if (!base.refreshModels) return;
+			const apiKey =
+				context.credential?.type === "api_key"
+					? context.credential.key
+					: context.credential?.type === "oauth"
+						? context.credential.access
+						: undefined;
+			return base.refreshModels({
+				...context,
+				credential: apiKey ? { type: "api_key", key: apiKey } : undefined,
+			});
+		},
+	};
 }
 
 /**
@@ -69,10 +174,11 @@ async function registerEngineProviders(runtime: {
 	// No transpile cache: in the packaged app the default one lands inside the signed bundle (S35.1).
 	const jiti = createJiti(import.meta.url, { fsCache: false });
 	const { createNanProviderConfig } = await jiti.import<{
-		createNanProviderConfig: () => { id: string };
+		createNanProviderConfig: () => NanProviderConfig;
 	}>("gentle-pi/lib/nan-provider.ts");
 	// A provider object, as `pi.registerProvider(config)` passes it, is a native provider.
-	runtime.registerNativeProvider(createNanProviderConfig() as never);
+	const provider = enhanceNanProviderConfig(createNanProviderConfig());
+	runtime.registerNativeProvider(provider as never);
 }
 
 /** Pi's ModelRuntime on the assistant's home: same auth.json format and file locking as Gentle Shell. */
@@ -95,6 +201,8 @@ export async function createModelAuthRuntime(agentHome: string, cwd: string): Pr
 				getDeviceId: () => settings.getOrCreateDeviceId(),
 			}),
 		logout: (providerId) => runtime.logout(providerId),
+		isUsingSubscription: (providerId) => runtime.isUsingSubscription(providerId),
+		getAuth: (providerId) => runtime.getAuth(providerId),
 		openAIApiKey: async () => {
 			// Checked first: resolving a sign-in could refresh its token over the network.
 			if ((await runtime.checkAuth("openai"))?.type !== "api_key") return undefined;

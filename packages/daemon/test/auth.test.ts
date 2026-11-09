@@ -278,12 +278,26 @@ describe("createModelAuthRuntime (Pi's runtime, offline)", () => {
 		expect(readdirSync(tmp)).toEqual([]);
 	});
 
-	it("lists NaN, the provider the engine's own extension registers, with its API key sign-in", async () => {
+	it("lists NaN, the provider the engine's own extension registers, with its API key and subscription sign-in", async () => {
 		const home = tempDir();
 		const runtime = await createModelAuthRuntime(home, home);
 		const nan = runtime.getProviders().find((provider) => provider.name === "NaN");
 		expect(nan?.auth.apiKey?.name).toBe("NaN API key");
+		expect(nan?.auth.oauth?.name).toBe("NaN Builders (subscription)");
 		expect(runtime.getProviderAuthStatus(nan?.id ?? "").configured).toBe(false);
+	});
+
+	it("signs in to NaN with a subscription key and resolves model auth", async () => {
+		const home = tempDir();
+		const runtime = await createModelAuthRuntime(home, home);
+		await runtime.login("nan", "oauth", {
+			signal: new AbortController().signal,
+			prompt: async () => "sk-nan-sub-test-key",
+			notify: () => {},
+		});
+		expect(runtime.getProviderAuthStatus("nan").configured).toBe(true);
+		expect(runtime.isUsingSubscription?.("nan")).toBe(true);
+		expect(await runtime.getAuth?.("nan")).toMatchObject({ auth: { apiKey: "sk-nan-sub-test-key" } });
 	});
 });
 

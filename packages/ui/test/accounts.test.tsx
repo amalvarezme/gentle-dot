@@ -147,6 +147,31 @@ describe("AccountsPanel", () => {
 		expect(send).toHaveBeenCalledWith({ type: "auth_login", providerId: "github-copilot", method: "oauth" });
 	});
 
+	it("lists NaN Builders under subscriptions and allows signing in", async () => {
+		const send = vi.fn();
+		const dispatch = vi.fn();
+		const authWithNan = apply(base(), {
+			type: "auth_providers",
+			providers: [
+				{
+					id: "nan",
+					name: "NaN",
+					methods: ["oauth", "api_key"],
+					oauthName: "NaN Builders (subscription)",
+					configured: false,
+				},
+			],
+		}).auth;
+		render(<AccountsPanel auth={authWithNan} send={send} dispatch={dispatch} openUrl={vi.fn()} />);
+		await userEvent.click(screen.getByRole("button", { name: /Use a subscription/ }));
+		const list = screen.getByRole("region", { name: "Use a subscription" });
+		expect(within(list).getByText("NaN Builders")).toBeInTheDocument();
+		expect(within(list).getByText("NaN Builders (subscription)")).toHaveClass("provider-plan");
+		await userEvent.click(within(list).getByRole("button", { name: "Sign in with NaN Builders (subscription)" }));
+		expect(dispatch).toHaveBeenCalledWith({ type: "auth_started", providerId: "nan" });
+		expect(send).toHaveBeenCalledWith({ type: "auth_login", providerId: "nan", method: "oauth" });
+	});
+
 	it("lists API keys after choosing an API key, with search and a way back", async () => {
 		const send = vi.fn();
 		render(<AccountsPanel auth={mixed()} send={send} dispatch={vi.fn()} openUrl={vi.fn()} />);

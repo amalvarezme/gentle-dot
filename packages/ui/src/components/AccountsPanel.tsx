@@ -21,11 +21,16 @@ export function AccountsPanel({ auth, send, dispatch, openUrl }: AccountsPanelPr
 		dispatch({ type: "auth_started", providerId: provider.id });
 		send({ type: "auth_login", providerId: provider.id, method });
 	};
-	const providers = (auth.providers ?? []).filter((p) =>
-		p.name.toLowerCase().includes(filter.trim().toLowerCase()),
-	);
+	const providers = (auth.providers ?? []).filter((p) => {
+		const q = filter.trim().toLowerCase();
+		const name = (p.id === "nan" ? "nan builders" : p.name).toLowerCase();
+		return name.includes(q) || (p.oauthName?.toLowerCase().includes(q) ?? false);
+	});
 	const connected = (auth.providers ?? []).filter((p) => p.configured);
-	const providerName = (id: string) => auth.providers?.find((p) => p.id === id)?.name ?? id;
+	const providerName = (id: string) => {
+		if (id === "nan") return "NaN Builders";
+		return auth.providers?.find((p) => p.id === id)?.name ?? id;
+	};
 
 	return (
 		<section className="accounts" aria-label="Accounts">
@@ -91,12 +96,12 @@ export function AccountsPanel({ auth, send, dispatch, openUrl }: AccountsPanelPr
 							<ul className="providers">
 								{connected.map((provider) => (
 									<li key={provider.id} className="connected-row">
-										<b>{provider.name}</b>
+										<b>{provider.id === "nan" ? "NaN Builders" : provider.name}</b>
 										{provider.source === "stored" ? (
 											<button
 												type="button"
 												className="link"
-												aria-label={`Sign out of ${provider.name}`}
+												aria-label={`Sign out of ${provider.id === "nan" ? "NaN Builders" : provider.name}`}
 												onClick={() => send({ type: "auth_logout", providerId: provider.id })}
 											>
 												Sign out
@@ -112,7 +117,9 @@ export function AccountsPanel({ auth, send, dispatch, openUrl }: AccountsPanelPr
 					<div className="method-choices">
 						<button type="button" className="method-choice" onClick={() => setMethod("oauth")}>
 							<b>Use a subscription</b>
-							<span>Sign in with a plan you already pay for, like ChatGPT, GitHub Copilot, or Grok.</span>
+							<span>
+								Sign in with a plan you already pay for, like ChatGPT, GitHub Copilot, Grok, or NaN Builders.
+							</span>
 						</button>
 						<button type="button" className="method-choice" onClick={() => setMethod("api_key")}>
 							<b>Use an API key</b>
@@ -145,13 +152,13 @@ export function AccountsPanel({ auth, send, dispatch, openUrl }: AccountsPanelPr
 							title="Use a subscription"
 							hint="Sign in with a plan you already pay for."
 							providers={providers.filter((p) => p.methods.includes("oauth"))}
-							label={(p) => p.name}
+							label={(p) => (p.id === "nan" ? "NaN Builders" : p.name)}
 							plan={(p) => (p.oauthName && p.oauthName !== p.name ? p.oauthName : undefined)}
 							action={(p) => (
 								<button
 									type="button"
 									className="primary"
-									aria-label={`Sign in with ${p.oauthName ?? p.name}`}
+									aria-label={`Sign in with ${p.id === "nan" ? (p.oauthName ?? "NaN Builders") : (p.oauthName ?? p.name)}`}
 									onClick={() => login(p, "oauth")}
 								>
 									Sign in
@@ -164,11 +171,11 @@ export function AccountsPanel({ auth, send, dispatch, openUrl }: AccountsPanelPr
 							title="Use an API key"
 							hint="Paste the key from the provider's website."
 							providers={providers.filter((p) => p.methods.includes("api_key"))}
-							label={(p) => p.name}
+							label={(p) => (p.id === "nan" ? "NaN Builders" : p.name)}
 							action={(p) => (
 								<button
 									type="button"
-									aria-label={`Use an API key for ${p.name}`}
+									aria-label={`Use an API key for ${p.id === "nan" ? "NaN Builders" : p.name}`}
 									onClick={() => login(p, "api_key")}
 								>
 									Use an API key

@@ -37,7 +37,8 @@ export interface VoiceControls {
 	speaking: boolean;
 	muted: boolean;
 	start(): void;
-	stop(): void;
+	/** Stops recording; `send` overrides the review choice for this dictation (hold-to-talk sends). */
+	stop(send?: boolean): void;
 	cancel(): void;
 	stopSpeaking(): void;
 	setMuted(muted: boolean): void;
@@ -188,6 +189,8 @@ export function useVoice(state: DotState, send: Send): VoiceControls {
 	const [sendOnStop, setSendOnStopState] = useState(readFlag(SEND_KEY));
 	const sendOnStopNow = useRef(sendOnStop);
 	sendOnStopNow.current = sendOnStop;
+	/** This dictation's own choice, from `stop(send)`; cleared once it is used. */
+	const sendThisOne = useRef<boolean | undefined>(undefined);
 	const [draft, setDraft] = useState<{ id: number; text: string }>();
 	/** The input holds dictated text that has not been sent yet. */
 	const dictated = useRef(false);
@@ -195,11 +198,13 @@ export function useVoice(state: DotState, send: Send): VoiceControls {
 	const sendTranscript = useCallback(
 		(transcript: string) => {
 			const text = transcript.trim();
+			const sendNow = sendThisOne.current ?? sendOnStopNow.current;
+			sendThisOne.current = undefined;
 			if (!text) {
 				finish(REASONS.empty);
 				return;
 			}
-			if (sendOnStopNow.current) {
+			if (sendNow) {
 				voiceTurn.current = new Set(latest.current.messages.map((m) => m.id));
 				send({ type: "send", text, requestId: newRequestId() });
 			} else {
@@ -235,6 +240,7 @@ export function useVoice(state: DotState, send: Send): VoiceControls {
 			const started = Date.now();
 			entry.ticker = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 250);
 			recording.current = entry;
+			sendThisOne.current = undefined;
 			setNote(undefined);
 			setPartial("");
 			setElapsed(0);
@@ -258,17 +264,21 @@ export function useVoice(state: DotState, send: Send): VoiceControls {
 		[send, finish, setPhase],
 	);
 
-	const stop = useCallback(() => {
-		const current = recording.current;
-		if (!current || phaseNow.current !== "recording") return;
-		stopTimers(current);
-		if (current.kind === "daemon") {
-			current.recorder?.stop();
-			return;
-		}
-		setPhase("transcribing");
-		stopNativeVoice().then(sendTranscript, (error: unknown) => finish(startRefusal(error)));
-	}, [finish, sendTranscript, setPhase]);
+	const stop = useCallback(
+		(send?: boolean) => {
+			const current = recording.current;
+			if (!current || phaseNow.current !== "recording") return;
+			sendThisOne.current = send;
+			stopTimers(current);
+			if (current.kind === "daemon") {
+				current.recorder?.stop();
+				return;
+			}
+			setPhase("transcribing");
+			stopNativeVoice().then(sendTranscript, (error: unknown) => finish(startRefusal(error)));
+		},
+		[finish, sendTranscript, setPhase],
+	);
 
 	const startDaemon = useCallback(async () => {
 		let stream: MediaStream;
@@ -370,12 +380,12 @@ export function useVoice(state: DotState, send: Send): VoiceControls {
 		};
 	}, [desktop, finish]);
 
-	// Installing or removing the local model changes what the recognizer can do (#25).
+	// Installing, removing, or switching the local model changes what the recognizer can do (#25).
 	useEffect(() => {
 		if (!desktop) return;
 		let live = true;
 		const off = onVoiceModel((event) => {
-			if (event.state !== "installed" && event.state !== "removed") return;
+			if (event.state !== "installed" && event.state !== "removed" && event.state !== "switched") return;
 			void nativeVoiceStatus().then((status) => {
 				if (live) setNative(status);
 			});

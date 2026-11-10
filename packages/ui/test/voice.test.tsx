@@ -318,6 +318,12 @@ describe("talking on the desktop", () => {
 		emit("voice://model", { state: "removed" });
 		await waitFor(() => expect(talk()).toBeDisabled());
 		expect(invoked("voice_status")).toHaveLength(3);
+
+		// Turning the installed model on or off changes the engine too.
+		status = { available: true };
+		emit("voice://model", { state: "switched" });
+		await waitFor(() => expect(talk()).toBeEnabled());
+		expect(invoked("voice_status")).toHaveLength(4);
 	});
 
 	it("listens in the language chosen in Settings instead of the system's", async () => {
@@ -337,6 +343,55 @@ describe("talking on the desktop", () => {
 		await userEvent.click(await screen.findByRole("button", { name: "Cancel recording" }));
 		expect(invoked("voice_cancel")).toHaveLength(1);
 		expect(sentOf("send")).toEqual([]);
+	});
+
+	describe("holding Space to talk, like Gentle Shell", () => {
+		const input = () => screen.getByRole("textbox", { name: "Message" });
+		const hold = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+		it("listens while Space is held in an empty input and sends on release, even when review is chosen", async () => {
+			localStorage.removeItem("gentle-dot-voice-send");
+			desktop({ available: true }, "abre el correo");
+			render(<Harness initial={withVoice(false)} />);
+			await waitFor(() => expect(talk()).toBeEnabled());
+			input().focus();
+			fireEvent.keyDown(input(), { key: " ", code: "Space" });
+			await hold(450);
+			expect(invoked("voice_start")).toHaveLength(1);
+			await screen.findByRole("timer");
+			// While listening the input gives way to the recording bar; the key repeats and is released anywhere.
+			fireEvent.keyDown(window, { key: " ", code: "Space", repeat: true });
+			fireEvent.keyUp(window, { key: " ", code: "Space" });
+			await waitFor(() =>
+				expect(sentOf("send")).toEqual([
+					{ type: "send", text: "abre el correo", requestId: expect.any(String) },
+				]),
+			);
+			expect(input()).toHaveValue("");
+		});
+
+		it("types a space on a quick tap, without listening", async () => {
+			desktop({ available: true });
+			render(<Harness initial={withVoice(false)} />);
+			await waitFor(() => expect(talk()).toBeEnabled());
+			fireEvent.keyDown(input(), { key: " ", code: "Space" });
+			fireEvent.keyUp(window, { key: " ", code: "Space" });
+			await hold(450);
+			expect(invoked("voice_start")).toHaveLength(0);
+			expect(input()).toHaveValue(" ");
+		});
+
+		it("leaves Space alone while the input has text", async () => {
+			desktop({ available: true });
+			render(<Harness initial={withVoice(false)} />);
+			await waitFor(() => expect(talk()).toBeEnabled());
+			await userEvent.type(input(), "hola");
+			const event = fireEvent.keyDown(input(), { key: " ", code: "Space" });
+			await hold(450);
+			fireEvent.keyUp(input(), { key: " ", code: "Space" });
+			expect(event).toBe(true);
+			expect(invoked("voice_start")).toHaveLength(0);
+		});
 	});
 
 	it("shows the native error and goes back to idle", async () => {

@@ -5,6 +5,9 @@ import type { VoiceControls } from "../useVoice.ts";
 import { MicIcon, PaperclipIcon, SendIcon } from "./icons.tsx";
 import { newRequestId, type Send } from "./types.ts";
 
+/** How long Space must be held, in an empty input, before the mic listens (hold-to-talk). */
+const HOLD_TO_TALK_MS = 300;
+
 interface ComposerProps {
 	busy: boolean;
 	disabled: boolean;
@@ -89,11 +92,56 @@ export function Composer({
 		attachments.add(images);
 	}
 
+	/** Hold-to-talk: a pending hold waits HOLD_TO_TALK_MS before listening; a quick tap types a space. */
+	const hold = useRef<{ release: () => void } | undefined>(undefined);
+	useEffect(() => () => hold.current?.release(), []);
+
 	function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
 		if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
 			event.preventDefault();
 			void submit();
+			return;
 		}
+		const isSpace = event.code === "Space" || event.key === " ";
+		if (!isSpace || event.nativeEvent.isComposing) return;
+		if (hold.current) {
+			// The key repeats while held: no spaces pile up in the input.
+			event.preventDefault();
+			return;
+		}
+		const canTalk = voice?.mic?.available === true && voice.phase === "idle" && !disabled;
+		if (
+			!canTalk ||
+			text !== "" ||
+			event.repeat ||
+			event.shiftKey ||
+			event.metaKey ||
+			event.ctrlKey ||
+			event.altKey
+		)
+			return;
+		event.preventDefault();
+		const { start, stop } = voice;
+		let listening = false;
+		const timer = setTimeout(() => {
+			listening = true;
+			start();
+		}, HOLD_TO_TALK_MS);
+		// Space is released anywhere: while listening the input gives way to the recording bar.
+		const onKeyUp = (up: globalThis.KeyboardEvent) => {
+			if (up.code === "Space" || up.key === " ") release();
+		};
+		const release = () => {
+			clearTimeout(timer);
+			window.removeEventListener("keyup", onKeyUp);
+			window.removeEventListener("blur", release);
+			if (hold.current?.release === release) hold.current = undefined;
+			if (listening) stop(true);
+			else setText((value) => `${value} `);
+		};
+		hold.current = { release };
+		window.addEventListener("keyup", onKeyUp);
+		window.addEventListener("blur", release);
 	}
 
 	return (
@@ -212,12 +260,12 @@ export function Composer({
 						title={
 							voice.mic.available
 								? voice.sendOnStop
-									? "Tap to talk, tap again to send"
-									: "Tap to talk, tap again to review before sending"
+									? "Tap to talk, tap again to send. Or hold Space in an empty box"
+									: "Tap to talk, tap again to review before sending. Or hold Space in an empty box to talk and send"
 								: voice.mic.reason
 						}
 						disabled={disabled || !voice.mic.available || voice.phase === "transcribing"}
-						onClick={recording ? voice.stop : voice.start}
+						onClick={recording ? () => voice.stop() : voice.start}
 					>
 						<MicIcon />
 					</button>

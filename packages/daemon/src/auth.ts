@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { AuthEvent, AuthMethod, AuthPrompt, AuthProvider, ServerPayload } from "@gentle-dot/protocol";
+import { CLAUDE_BRIDGE_PROVIDER, type ClaudeCodeAccount } from "./claude-code-account.ts";
 import { presentText } from "./white-label.ts";
 
 type PromptRequest = {
@@ -181,6 +182,12 @@ async function registerEngineProviders(runtime: {
 	runtime.registerNativeProvider(provider as never);
 }
 
+/**
+ * Subscriptions whose sign-in is a key, by provider, with the prompt shown for it. The engine's
+ * provider (gentle-pi's NaN) reads only `api_key` credentials, so the key is saved as one.
+ */
+const SUBSCRIPTION_KEYS: Readonly<Record<string, string>> = { nan: "Enter NaN Builders subscription key" };
+
 /** Pi's ModelRuntime on the assistant's home: same auth.json format and file locking as Gentle Shell. */
 export async function createModelAuthRuntime(agentHome: string, cwd: string): Promise<AuthRuntime> {
 	mkdirSync(agentHome, { recursive: true, mode: 0o700 });
@@ -196,10 +203,23 @@ export async function createModelAuthRuntime(agentHome: string, cwd: string): Pr
 	return {
 		getProviders: () => runtime.getProviders() as unknown as ReturnType<AuthRuntime["getProviders"]>,
 		getProviderAuthStatus: (providerId) => runtime.getProviderAuthStatus(providerId),
-		login: (providerId, type, interaction) =>
-			runtime.login(providerId, type, interaction as never, {
+		login: (providerId, type, interaction) => {
+			const subscriptionKey = SUBSCRIPTION_KEYS[providerId];
+			// A subscription key is an API key: saved as one, so the engine's own provider can use it.
+			if (type === "oauth" && subscriptionKey) {
+				const asKey = {
+					...interaction,
+					prompt: (request: { message: string }) =>
+						interaction.prompt({ ...request, message: subscriptionKey } as never),
+				};
+				return runtime.login(providerId, "api_key", asKey as never, {
+					getDeviceId: () => settings.getOrCreateDeviceId(),
+				});
+			}
+			return runtime.login(providerId, type, interaction as never, {
 				getDeviceId: () => settings.getOrCreateDeviceId(),
-			}),
+			});
+		},
 		logout: (providerId) => runtime.logout(providerId),
 		isUsingSubscription: (providerId) => runtime.isUsingSubscription(providerId),
 		getAuth: (providerId) => runtime.getAuth(providerId),
@@ -229,6 +249,10 @@ const REFUSALS = {
 		message: "Signing in with a Claude subscription is not supported. Use an Anthropic API key instead.",
 	},
 	unknown: { code: "unknown_provider", message: "That account is not available." },
+	claudeCodeSignOut: {
+		code: "auth_unsupported",
+		message: "Claude uses your Claude Code sign-in. To sign out, run `claude auth logout` in a terminal.",
+	},
 } as const satisfies Record<string, AuthRefusal>;
 
 interface Flow {
@@ -243,6 +267,8 @@ interface Flow {
 
 export interface AuthManagerOptions {
 	runtime: () => Promise<AuthRuntime>;
+	/** The user's Claude Code sign-in, when the claude-bridge is set up (Claude through Claude Code). */
+	claudeCode?: ClaudeCodeAccount;
 	log?: (line: string) => void;
 }
 
@@ -262,7 +288,7 @@ export class AuthManager {
 
 	async providers(): Promise<AuthProvider[]> {
 		const runtime = await this.options.runtime();
-		return runtime.getProviders().flatMap((provider) => {
+		const listed = runtime.getProviders().flatMap((provider) => {
 			const oauth = isUnsupported(provider.id, "oauth") ? undefined : provider.auth.oauth;
 			const methods: AuthMethod[] = [];
 			if (oauth) methods.push("oauth");
@@ -279,6 +305,19 @@ export class AuthManager {
 			if (status.configured && status.source) entry.source = status.source;
 			return [entry];
 		});
+		const claudeCode = this.options.claudeCode;
+		if (!claudeCode) return listed;
+		return [
+			...listed,
+			{
+				id: CLAUDE_BRIDGE_PROVIDER,
+				name: "Claude (Claude Code)",
+				methods: ["oauth"],
+				oauthName: "Claude (via Claude Code)",
+				configured: await claudeCode.signedIn(),
+				source: "claude-code",
+			},
+		];
 	}
 
 	/** Starts a flow, or says why it did not start. */
@@ -320,6 +359,7 @@ export class AuthManager {
 
 	/** Signs out of a listed provider, or says why not. */
 	async logout(providerId: string): Promise<AuthRefusal | undefined> {
+		if (providerId === CLAUDE_BRIDGE_PROVIDER && this.options.claudeCode) return REFUSALS.claudeCodeSignOut;
 		const runtime = await this.options.runtime();
 		if (!runtime.getProviders().some((provider) => provider.id === providerId)) return REFUSALS.unknown;
 		await runtime.logout(providerId);
@@ -365,8 +405,9 @@ export class AuthManager {
 			notify: (event) => emit({ type: "auth_event", flowId: flow.id, event: toAuthEvent(event) }),
 		};
 		try {
-			const runtime = await this.options.runtime();
-			await runtime.login(flow.providerId, method, interaction);
+			const claudeCode = flow.providerId === CLAUDE_BRIDGE_PROVIDER ? this.options.claudeCode : undefined;
+			if (claudeCode) await claudeCode.login(interaction);
+			else await (await this.options.runtime()).login(flow.providerId, method, interaction);
 			this.log(`signed in to ${flow.providerId} (${method})`);
 			emit({ type: "auth_done", flowId: flow.id, providerId: flow.providerId, ok: true });
 			this.flow = undefined;

@@ -106,6 +106,9 @@ export function AccountsPanel({ auth, send, dispatch, openUrl }: AccountsPanelPr
 											>
 												Sign out
 											</button>
+										) : provider.source === "claude-code" ? (
+											// Claude Code's own sign-in: signing out here would sign it out everywhere.
+											<span className="muted">signed in with Claude Code</span>
 										) : (
 											<span className="muted">from your computer's settings</span>
 										)}

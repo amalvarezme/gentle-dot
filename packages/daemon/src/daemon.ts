@@ -17,6 +17,7 @@ import { AppChannel } from "./app-channel.ts";
 import { AuthManager, type AuthRuntime, createModelAuthRuntime, resolveAgentHome } from "./auth.ts";
 import { AuthHelper } from "./auth-helper.ts";
 import { type BridgeClient, DotBridge } from "./bridge.ts";
+import { ClaudeCodeAccount, claudeCodeExecutable } from "./claude-code-account.ts";
 import {
 	APPROVAL_GUARD,
 	ConnectorManager,
@@ -304,6 +305,9 @@ export async function startDaemon(options: DaemonOptions): Promise<DotDaemon> {
 					log,
 				})
 			: undefined;
+	// Claude through the claude-bridge uses the user's own Claude Code sign-in (never on a server).
+	const claudeExecutable = vps ? undefined : claudeCodeExecutable(agentHome);
+	const claudeCode = claudeExecutable ? new ClaudeCodeAccount(claudeExecutable) : undefined;
 	const auth = new AuthManager({
 		runtime:
 			options.authRuntime ??
@@ -312,6 +316,7 @@ export async function startDaemon(options: DaemonOptions): Promise<DotDaemon> {
 				: vps
 					? () => Promise.reject(new Error("sign-in has no helper on this server"))
 					: () => createModelAuthRuntime(agentHome, options.workspace)),
+		...(claudeCode ? { claudeCode } : {}),
 		log,
 	});
 	const profiles = new ProfileStore({

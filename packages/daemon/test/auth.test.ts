@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { ServerMessage } from "@gentle-dot/protocol";
 import { afterEach, describe, expect, it } from "vitest";
@@ -296,8 +296,37 @@ describe("createModelAuthRuntime (Pi's runtime, offline)", () => {
 			notify: () => {},
 		});
 		expect(runtime.getProviderAuthStatus("nan").configured).toBe(true);
-		expect(runtime.isUsingSubscription?.("nan")).toBe(true);
 		expect(await runtime.getAuth?.("nan")).toMatchObject({ auth: { apiKey: "sk-nan-sub-test-key" } });
+	});
+
+	it("saves a NaN Builders subscription key as the API key the engine reads, asking for the subscription key", async () => {
+		const home = tempDir();
+		const runtime = await createModelAuthRuntime(home, home);
+		const messages: string[] = [];
+		await runtime.login("nan", "oauth", {
+			signal: new AbortController().signal,
+			prompt: async (request: { message: string }) => {
+				messages.push(request.message);
+				return "  sk-nan-sub-test-key  ";
+			},
+			notify: () => {},
+		});
+		expect(messages).toEqual(["Enter NaN Builders subscription key"]);
+		// The engine's own NaN provider (gentle-pi) only reads `api_key` credentials.
+		const saved = JSON.parse(readFileSync(join(home, "auth.json"), "utf8")) as Record<string, unknown>;
+		expect(saved.nan).toEqual({ type: "api_key", key: "sk-nan-sub-test-key" });
+	});
+
+	it("still signs in to NaN with a plain API key", async () => {
+		const home = tempDir();
+		const runtime = await createModelAuthRuntime(home, home);
+		await runtime.login("nan", "api_key", {
+			signal: new AbortController().signal,
+			prompt: async () => "sk-nan-plain",
+			notify: () => {},
+		});
+		const saved = JSON.parse(readFileSync(join(home, "auth.json"), "utf8")) as Record<string, unknown>;
+		expect(saved.nan).toEqual({ type: "api_key", key: "sk-nan-plain" });
 	});
 });
 

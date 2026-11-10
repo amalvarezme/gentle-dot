@@ -128,6 +128,38 @@ describe("AccountsPanel", () => {
 		expect(send).toHaveBeenCalledWith({ type: "auth_logout", providerId: "openai" });
 	});
 
+	it("shows Claude signed in through Claude Code, with no sign-out of its own, and offers its sign-in", async () => {
+		const claude = {
+			id: "claude-bridge",
+			name: "Claude (Claude Code)",
+			methods: ["oauth" as const],
+			oauthName: "Claude (via Claude Code)",
+			source: "claude-code",
+		};
+		const signedIn = apply(base(), {
+			type: "auth_providers",
+			providers: [{ ...claude, configured: true }],
+		}).auth;
+		const { unmount } = render(
+			<AccountsPanel auth={signedIn} send={vi.fn()} dispatch={vi.fn()} openUrl={vi.fn()} />,
+		);
+		const connected = screen.getByRole("region", { name: "Connected" });
+		expect(within(connected).getByText("Claude (Claude Code)")).toBeInTheDocument();
+		expect(within(connected).getByText("signed in with Claude Code")).toBeInTheDocument();
+		expect(within(connected).queryByRole("button", { name: /Sign out/ })).toBeNull();
+		unmount();
+
+		const send = vi.fn();
+		const signedOut = apply(base(), {
+			type: "auth_providers",
+			providers: [{ ...claude, configured: false }],
+		}).auth;
+		render(<AccountsPanel auth={signedOut} send={send} dispatch={vi.fn()} openUrl={vi.fn()} />);
+		await userEvent.click(screen.getByRole("button", { name: /Use a subscription/ }));
+		await userEvent.click(screen.getByRole("button", { name: "Sign in with Claude (via Claude Code)" }));
+		expect(send).toHaveBeenCalledWith({ type: "auth_login", providerId: "claude-bridge", method: "oauth" });
+	});
+
 	it("lists only subscriptions after choosing a subscription, named like Pi's account list", async () => {
 		const send = vi.fn();
 		const dispatch = vi.fn();

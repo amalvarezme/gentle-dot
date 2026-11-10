@@ -37,7 +37,8 @@
 				"allow-voice-model-status",
 				"allow-voice-model-download",
 				"allow-voice-model-cancel",
-				"allow-voice-model-remove"
+				"allow-voice-model-remove",
+				"allow-voice-model-set-enabled"
 			]
 		},
 		{

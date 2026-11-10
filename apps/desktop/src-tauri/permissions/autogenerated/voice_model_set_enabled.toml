@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-voice-model-set-enabled"
+description = "Enables the voice_model_set_enabled command without any pre-configured scope."
+commands.allow = ["voice_model_set_enabled"]
+
+[[permission]]
+identifier = "deny-voice-model-set-enabled"
+description = "Denies the voice_model_set_enabled command without any pre-configured scope."
+commands.deny = ["voice_model_set_enabled"]

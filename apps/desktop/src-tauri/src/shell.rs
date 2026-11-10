@@ -897,7 +897,8 @@ pub fn run() {
             voice::voice_model_status,
             voice::voice_model_download,
             voice::voice_model_cancel,
-            voice::voice_model_remove
+            voice::voice_model_remove,
+            voice::voice_model_set_enabled
         ])
         .setup(move |app| {
             #[cfg(target_os = "macos")]

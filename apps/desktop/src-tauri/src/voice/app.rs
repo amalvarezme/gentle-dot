@@ -16,7 +16,7 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter, EventTarget, Manager};
 
 /// The commands, as registered in `build.rs` and granted to the panel.
-pub const COMMANDS: [&str; 8] = [
+pub const COMMANDS: [&str; 9] = [
     "voice_status",
     "voice_start",
     "voice_stop",
@@ -25,6 +25,7 @@ pub const COMMANDS: [&str; 8] = [
     "voice_model_download",
     "voice_model_cancel",
     "voice_model_remove",
+    "voice_model_set_enabled",
 ];
 
 /// Voice input, when this platform has a backend.
@@ -87,6 +88,15 @@ impl VoiceModel {
         self.local.release();
         Ok(())
     }
+
+    /// Uses the installed model or not; turning it off drops it from memory and keeps the files.
+    pub fn set_enabled(&self, enabled: bool) -> Result<(), ModelError> {
+        self.manager.set_enabled(enabled)?;
+        if !enabled {
+            self.local.release();
+        }
+        Ok(())
+    }
 }
 
 /// Where models are installed: `<app data>/models`.
@@ -111,7 +121,8 @@ pub fn start(app: &AppHandle) -> (VoiceInput, VoiceModel) {
         fallback_engine(),
     ));
     let installed = manager.clone();
-    let locate: Locate = Arc::new(move || installed.installed());
+    // The recognizer uses the model only while it is installed and turned on.
+    let locate: Locate = Arc::new(move || installed.active());
     let loader: Loader = Arc::new(parakeet::load);
     let local = Arc::new(Parakeet::new(locate, loader));
     (platform_input(local.clone()), VoiceModel { manager, local })
@@ -220,6 +231,12 @@ pub async fn voice_model_remove(app: AppHandle) -> Result<(), String> {
     model(app, VoiceModel::remove).await
 }
 
+/// Turns the installed model on or off (kept across restarts); a `switched` event follows.
+#[tauri::command]
+pub async fn voice_model_set_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
+    model(app, move |model| model.set_enabled(enabled)).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -257,6 +274,7 @@ mod tests {
                 "voice_model_download",
                 "voice_model_cancel",
                 "voice_model_remove",
+                "voice_model_set_enabled",
             ]
         );
     }

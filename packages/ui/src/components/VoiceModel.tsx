@@ -4,13 +4,14 @@ import {
 	downloadVoiceModel,
 	onVoiceModel,
 	removeVoiceModel,
+	setVoiceModelEnabled,
 	type VoiceModelEvent,
 	type VoiceModelStatus,
 	voiceModelStatus,
 } from "../voice-native.ts";
 
-/** The archive's size (pinned in the desktop app), shown before anything downloads. */
-const DOWNLOAD_BYTES = 487_170_055;
+/** The four model files' total size (pinned in the desktop app), shown before anything downloads. */
+const DOWNLOAD_BYTES = 670_478_772;
 
 const ENGINES: Record<VoiceModelStatus["engine"], string> = {
 	parakeet: "Using: local model (Parakeet), works offline",
@@ -110,9 +111,21 @@ export function VoiceModelEntry() {
 			) : progress?.kind === "verifying" ? (
 				<p className="connector-note">Checking and unpacking…</p>
 			) : status?.installed ? (
-				<button type="button" onClick={() => act(removeVoiceModel)}>
-					Remove local model ({megabytes(status.bytes ?? 0)})
-				</button>
+				<>
+					<button
+						type="button"
+						role="switch"
+						aria-checked={status.enabled !== false}
+						aria-label="Use the local voice model"
+						className={`voice-send-option${status.enabled !== false ? " on" : ""}`}
+						onClick={() => act(() => setVoiceModelEnabled(status.enabled === false))}
+					>
+						{status.enabled !== false ? "Local model on" : "Local model off"}
+					</button>
+					<button type="button" onClick={() => act(removeVoiceModel)}>
+						Remove local model ({megabytes(status.bytes ?? 0)})
+					</button>
+				</>
 			) : status ? (
 				<button type="button" className="primary" onClick={() => act(downloadVoiceModel)}>
 					Download local voice model ({megabytes(DOWNLOAD_BYTES)})

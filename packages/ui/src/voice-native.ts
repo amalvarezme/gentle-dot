@@ -89,11 +89,13 @@ export interface VoiceModelStatus {
 	downloading: boolean;
 	received?: number;
 	total?: number;
+	/** Whether the installed model is used; older apps omit it (always on). */
+	enabled?: boolean;
 	engine: "parakeet" | "apple" | "none";
 }
 
 export interface VoiceModelEvent {
-	state: "downloading" | "verifying" | "installed" | "failed" | "removed";
+	state: "downloading" | "verifying" | "installed" | "failed" | "removed" | "switched";
 	received?: number;
 	total?: number;
 	message?: string;
@@ -103,6 +105,9 @@ export const voiceModelStatus = () => invoke<VoiceModelStatus>("voice_model_stat
 export const downloadVoiceModel = () => invoke<void>("voice_model_download");
 export const cancelVoiceModel = () => invoke<void>("voice_model_cancel");
 export const removeVoiceModel = () => invoke<void>("voice_model_remove");
+/** Uses the installed model or not, keeping its files; a `switched` event follows. */
+export const setVoiceModelEnabled = (enabled: boolean) =>
+	invoke<void>("voice_model_set_enabled", { enabled });
 
 /** Listens to the model's download and install progress. */
 export async function onVoiceModel(handler: (event: VoiceModelEvent) => void): Promise<() => void> {

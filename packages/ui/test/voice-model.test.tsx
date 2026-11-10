@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConnectorsPanel } from "../src/components/ConnectorsPanel.tsx";
 import { VoiceModelEntry } from "../src/components/VoiceModel.tsx";
 
-const TOTAL = 487_170_055;
+const TOTAL = 670_478_772;
 
 const h = vi.hoisted(() => ({
 	status: {} as Record<string, unknown>,
@@ -48,7 +48,7 @@ describe("local voice model (S30.5)", () => {
 		expect(screen.getByText("macOS")).toHaveClass("chip");
 		expect(h.invoke).not.toHaveBeenCalledWith("voice_model_download", undefined);
 
-		await userEvent.click(screen.getByRole("button", { name: "Download local voice model (487 MB)" }));
+		await userEvent.click(screen.getByRole("button", { name: "Download local voice model (670 MB)" }));
 		expect(h.invoke).toHaveBeenCalledWith("voice_model_download", undefined);
 
 		await emit({ state: "downloading", received: TOTAL / 4, total: TOTAL });
@@ -70,7 +70,7 @@ describe("local voice model (S30.5)", () => {
 		h.status = { installed: false, downloading: false, engine: "apple" };
 		await emit({ state: "failed", message: "The download was cancelled." });
 		expect(screen.getByText("The download was cancelled.")).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Download local voice model (487 MB)" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Download local voice model (670 MB)" })).toBeInTheDocument();
 	});
 
 	it("uses the installed model and can remove it", async () => {
@@ -87,12 +87,39 @@ describe("local voice model (S30.5)", () => {
 		await waitFor(() => expect(screen.getByText("Using: macOS speech")).toBeInTheDocument());
 	});
 
+	it("turns the installed model off and on with a switch, without deleting it", async () => {
+		h.status = { installed: true, bytes: 670_576_784, downloading: false, enabled: true, engine: "parakeet" };
+		render(<VoiceModelEntry />);
+		const toggle = await screen.findByRole("switch", { name: "Use the local voice model" });
+		expect(toggle).toHaveAttribute("aria-checked", "true");
+
+		await userEvent.click(toggle);
+		expect(h.invoke).toHaveBeenCalledWith("voice_model_set_enabled", { enabled: false });
+		h.status = { ...h.status, enabled: false, engine: "apple" };
+		await emit({ state: "switched" });
+		expect(await screen.findByText("Using: macOS speech")).toBeInTheDocument();
+		expect(screen.getByRole("switch", { name: "Use the local voice model" })).toHaveAttribute(
+			"aria-checked",
+			"false",
+		);
+		expect(screen.getByRole("button", { name: "Remove local model (671 MB)" })).toBeInTheDocument();
+
+		await userEvent.click(screen.getByRole("switch", { name: "Use the local voice model" }));
+		expect(h.invoke).toHaveBeenCalledWith("voice_model_set_enabled", { enabled: true });
+	});
+
+	it("offers no switch before the model is installed", async () => {
+		render(<VoiceModelEntry />);
+		await screen.findByText("Using: macOS speech");
+		expect(screen.queryByRole("switch")).toBeNull();
+	});
+
 	it("shows a failed download's reason and offers the download again", async () => {
 		render(<VoiceModelEntry />);
 		await screen.findByText("Using: macOS speech");
 		await emit({ state: "failed", message: "The download did not match its checksum." });
 		expect(screen.getByRole("alert")).toHaveTextContent("The download did not match its checksum.");
-		expect(screen.getByRole("button", { name: "Download local voice model (487 MB)" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Download local voice model (670 MB)" })).toBeInTheDocument();
 	});
 
 	it("shows nothing to act on, and does not fail, when the app reports no status", async () => {

@@ -40,7 +40,9 @@ function Activities({ activities }: { activities: Activity[] }) {
 			>
 				<span className={running ? "pulse" : ""} aria-hidden="true" />
 				<span className="summary-label">{running ? running.title : summarize(activities)}</span>
-				<span className="summary-arrow" aria-hidden="true">{open ? "▾" : "▸"}</span>
+				<span className="summary-arrow" aria-hidden="true">
+					{open ? "▾" : "▸"}
+				</span>
 			</button>
 			{open ? (
 				<ul className="activities-list">
@@ -60,23 +62,24 @@ function Activities({ activities }: { activities: Activity[] }) {
 
 function ThinkingBlock({ thinking, streaming }: { thinking: string; streaming?: boolean }) {
 	const [open, setOpen] = useState(false);
-	const lines = thinking ? thinking.trim().split("\n").map((l) => l.trim()).filter(Boolean) : [];
+	const lines = thinking
+		? thinking
+				.trim()
+				.split("\n")
+				.map((l) => l.trim())
+				.filter(Boolean)
+		: [];
 	const preview = lines.at(-1)?.replace(/^\*+|\*+$/g, "") || "";
 
 	return (
 		<div className="thinking">
-			<button
-				type="button"
-				className="thinking-toggle"
-				aria-expanded={open}
-				onClick={() => setOpen(!open)}
-			>
+			<button type="button" className="thinking-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>
 				<span className={streaming ? "thinking-pulse" : "thinking-dot"} aria-hidden="true" />
 				<span className="thinking-label">{streaming ? "Pensando…" : "Proceso de pensamiento"}</span>
-				{streaming && preview ? (
-					<span className="thinking-snippet">{preview}</span>
-				) : null}
-				<span className="thinking-arrow" aria-hidden="true">{open ? "▾" : "▸"}</span>
+				{streaming && preview ? <span className="thinking-snippet">{preview}</span> : null}
+				<span className="thinking-arrow" aria-hidden="true">
+					{open ? "▾" : "▸"}
+				</span>
 			</button>
 			{open && thinking ? (
 				<div className="thinking-body">
@@ -98,7 +101,13 @@ interface MessageListProps {
 	busy?: boolean;
 }
 
-export function MessageList({ messages, queued = [], hasEarlier = false, onShowEarlier, busy = false }: MessageListProps) {
+export function MessageList({
+	messages,
+	queued = [],
+	hasEarlier = false,
+	onShowEarlier,
+	busy = false,
+}: MessageListProps) {
 	const end = useRef<HTMLDivElement>(null);
 	const last = messages.at(-1);
 	const lastEarlier = messages.findLastIndex((m) => m.earlier);
@@ -126,7 +135,10 @@ export function MessageList({ messages, queued = [], hasEarlier = false, onShowE
 				<Fragment key={message.id}>
 					<article className={`message message-${message.role}`}>
 						{message.thinking || message.streaming ? (
-							<ThinkingBlock thinking={message.thinking ?? ""} streaming={message.thinkingStreaming ?? message.streaming} />
+							<ThinkingBlock
+								thinking={message.thinking ?? ""}
+								streaming={message.thinkingStreaming ?? message.streaming}
+							/>
 						) : null}
 						{message.activities.length > 0 ? <Activities activities={message.activities} /> : null}
 						{message.text && message.role === "user" ? (

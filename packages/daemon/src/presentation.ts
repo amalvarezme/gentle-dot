@@ -54,11 +54,7 @@ export function describeTool(
 	if (raw === "bash") {
 		if (cmd) {
 			const short = truncate(cmd, 30);
-			return titled("run", [
-				`Running: ${short}`,
-				`Ran: ${short}`,
-				`Command failed: ${short}`,
-			]);
+			return titled("run", [`Running: ${short}`, `Ran: ${short}`, `Command failed: ${short}`]);
 		}
 		return titled("run", ["Running a command", "Ran a command", "A command failed"]);
 	}
@@ -68,7 +64,11 @@ export function describeTool(
 		return titled(
 			"search",
 			query
-				? ([`Searching Drive: "${truncate(query, 25)}"`, `Searched Drive: "${truncate(query, 25)}"`, "Could not search Drive"] as const)
+				? ([
+						`Searching Drive: "${truncate(query, 25)}"`,
+						`Searched Drive: "${truncate(query, 25)}"`,
+						"Could not search Drive",
+					] as const)
 				: (["Searching Drive", "Searched Drive", "Could not search Drive"] as const),
 		);
 	}
@@ -77,7 +77,11 @@ export function describeTool(
 		return titled(
 			"read",
 			target
-				? ([`Reading doc: ${truncate(target, 28)}`, `Read doc: ${truncate(target, 28)}`, `Could not read doc: ${truncate(target, 28)}`] as const)
+				? ([
+						`Reading doc: ${truncate(target, 28)}`,
+						`Read doc: ${truncate(target, 28)}`,
+						`Could not read doc: ${truncate(target, 28)}`,
+					] as const)
 				: (["Reading Drive doc", "Read Drive doc", "Could not read Drive doc"] as const),
 		);
 	}
@@ -85,7 +89,11 @@ export function describeTool(
 		return titled(
 			"search",
 			query
-				? ([`Searching Gmail: "${truncate(query, 25)}"`, `Searched Gmail: "${truncate(query, 25)}"`, "Could not search Gmail"] as const)
+				? ([
+						`Searching Gmail: "${truncate(query, 25)}"`,
+						`Searched Gmail: "${truncate(query, 25)}"`,
+						"Could not search Gmail",
+					] as const)
 				: (["Searching Gmail", "Searched Gmail", "Could not search Gmail"] as const),
 		);
 	}
@@ -96,7 +104,11 @@ export function describeTool(
 		return titled(
 			"read",
 			file
-				? ([`Downloading attachment: ${file}`, `Downloaded attachment: ${file}`, `Could not download attachment: ${file}`] as const)
+				? ([
+						`Downloading attachment: ${file}`,
+						`Downloaded attachment: ${file}`,
+						`Could not download attachment: ${file}`,
+					] as const)
 				: (["Downloading attachment", "Downloaded attachment", "Could not download attachment"] as const),
 		);
 	}
@@ -108,10 +120,13 @@ export function describeTool(
 	}
 
 	// Computer control
-	if (raw === "screenshot") return titled("run", ["Taking screenshot", "Took screenshot", "Could not take screenshot"]);
+	if (raw === "screenshot")
+		return titled("run", ["Taking screenshot", "Took screenshot", "Could not take screenshot"]);
 	if (raw === "mouse_move") return titled("run", ["Moving cursor", "Moved cursor", "Could not move cursor"]);
-	if (raw === "mouse_click") return titled("run", ["Clicking screen", "Clicked screen", "Could not click screen"]);
-	if (raw.startsWith("keyboard_")) return titled("run", ["Typing input", "Typed input", "Could not type input"]);
+	if (raw === "mouse_click")
+		return titled("run", ["Clicking screen", "Clicked screen", "Could not click screen"]);
+	if (raw.startsWith("keyboard_"))
+		return titled("run", ["Typing input", "Typed input", "Could not type input"]);
 
 	// Tasks and workflow
 	if (raw === "todo") {
@@ -119,7 +134,11 @@ export function describeTool(
 		const tasks = (args as Record<string, unknown> | null)?.tasks;
 		const count = Array.isArray(tasks) ? tasks.length : 0;
 		if (action === "write" && count > 0)
-			return titled("other", [`Planning tasks (${count} items)`, `Planned ${count} tasks`, "Could not plan tasks"]);
+			return titled("other", [
+				`Planning tasks (${count} items)`,
+				`Planned ${count} tasks`,
+				"Could not plan tasks",
+			]);
 		return titled("other", ["Updating task list", "Updated task list", "Could not update task list"]);
 	}
 	if (raw === "gentle_odd_phase") {
@@ -137,7 +156,11 @@ export function describeTool(
 		return titled(
 			"memory",
 			typeof topic === "string" && topic
-				? ([`Saving note: ${truncate(topic, 25)}`, `Saved note: ${truncate(topic, 25)}`, `Could not save note: ${truncate(topic, 25)}`] as const)
+				? ([
+						`Saving note: ${truncate(topic, 25)}`,
+						`Saved note: ${truncate(topic, 25)}`,
+						`Could not save note: ${truncate(topic, 25)}`,
+					] as const)
 				: (["Saving a note", "Saved a note", "Could not save a note"] as const),
 		);
 	}
@@ -190,7 +213,8 @@ export function describeTool(
 function fileOf(args: unknown): string | undefined {
 	if (typeof args !== "object" || args === null) return undefined;
 	const record = args as Record<string, unknown>;
-	const path = record.path ?? record.file_path ?? record.filePath ?? record.Path ?? record.filename ?? record.file_name;
+	const path =
+		record.path ?? record.file_path ?? record.filePath ?? record.Path ?? record.filename ?? record.file_name;
 	return typeof path === "string" && path !== "" ? basename(path) : undefined;
 }
 

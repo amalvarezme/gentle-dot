@@ -167,7 +167,9 @@ describe("AccountsPanel", () => {
 		const list = screen.getByRole("region", { name: "Use a subscription" });
 		expect(within(list).getByText("NaN Builders")).toBeInTheDocument();
 		expect(within(list).getByText("NaN Builders (subscription)")).toHaveClass("provider-plan");
-		await userEvent.click(within(list).getByRole("button", { name: "Sign in with NaN Builders (subscription)" }));
+		await userEvent.click(
+			within(list).getByRole("button", { name: "Sign in with NaN Builders (subscription)" }),
+		);
 		expect(dispatch).toHaveBeenCalledWith({ type: "auth_started", providerId: "nan" });
 		expect(send).toHaveBeenCalledWith({ type: "auth_login", providerId: "nan", method: "oauth" });
 	});

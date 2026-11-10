@@ -2163,7 +2163,9 @@ html[data-surface="glow"] body {
 .context-fill {
 	height: 100%;
 	border-radius: 3px;
-	transition: width 0.3s ease, background-color 0.3s ease;
+	transition:
+		width 0.3s ease,
+		background-color 0.3s ease;
 }
 
 .context-fill.level-low {
@@ -2189,7 +2191,10 @@ html[data-surface="glow"] body {
 	font-size: 11px;
 	padding: 2px 8px;
 	cursor: pointer;
-	transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+	transition:
+		background 0.15s ease,
+		border-color 0.15s ease,
+		transform 0.1s ease;
 }
 
 .compact-btn:hover:not(:disabled) {

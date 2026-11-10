@@ -345,6 +345,38 @@ export function parseProfileRoles(value: unknown): ProfileRoles | undefined {
 	return roles;
 }
 
+/** One completed model call, recorded by the daemon's usage ledger (see src/usage-ledger.ts). */
+export interface UsageEntry {
+	/** ISO timestamp of the call's end. */
+	ts: string;
+	/** Engine session id, when known. */
+	sessionId?: string;
+	provider: string;
+	model: string;
+	thinkingLevel?: string;
+	input: number;
+	output: number;
+	cacheRead: number;
+	cacheWrite: number;
+	totalTokens: number;
+	/** Estimated cost in USD as reported by the engine (0 when the model has no prices). */
+	cost: number;
+	durationMs: number;
+	stopReason?: string;
+	errorMessage?: string;
+}
+
+/** Aggregate over a set of usage entries. */
+export interface UsageTotals {
+	calls: number;
+	input: number;
+	output: number;
+	cacheRead: number;
+	cacheWrite: number;
+	totalTokens: number;
+	cost: number;
+}
+
 export type ClientMessage =
 	| { type: "hello"; token: string; protocol: number }
 	/** `text` may be empty when files are attached. */
@@ -372,6 +404,8 @@ export type ClientMessage =
 	| { type: "profile_save_current"; name: string }
 	/** The chat's model picker (S32): the current model, the connected accounts' models, and the profiles. */
 	| { type: "models_list" }
+	/** Per-model-call usage ledger entries recorded by the daemon. */
+	| { type: "usage_list" }
 	/** Switches the main assistant's model; during a reply it applies to the next message. */
 	| { type: "model_set"; provider: string; id: string; thinking?: ThinkingLevel }
 	| { type: "connectors_list" }
@@ -482,6 +516,10 @@ export type ServerPayload =
 			profiles: ProfilePick[];
 			activeProfile?: string;
 	  }
+	/**
+	 * The usage ledger: the most recent entries (newest last) and totals over the returned window.
+	 */
+	| { type: "usage"; entries: UsageEntry[]; totals: UsageTotals }
 	/** Connector sign-ins reuse `auth_event`, `auth_prompt`, and `auth_done`, with flow ids starting `connector-`. */
 	| { type: "connectors"; connectors: ConnectorInfo[]; open?: boolean }
 	| { type: "connector_draft"; draft: ConnectorDraft }
@@ -726,6 +764,7 @@ export function parseClientMessage(raw: string): ClientMessage | undefined {
 		case "connectors_scan":
 		case "profiles_list":
 		case "models_list":
+		case "usage_list":
 		case "profile_import":
 		case "abort":
 		case "new_conversation":

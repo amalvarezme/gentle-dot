@@ -6,7 +6,8 @@ interface ContextBarProps {
 	disabled?: boolean;
 }
 
-function formatTokens(num: number): string {
+/** Compact token counts: 1234 → 1.2k, 12,500,000 → 12.5M. */
+export function formatTokens(num: number): string {
 	if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
 	if (num >= 1_000) return `${(num / 1_000).toFixed(1)}k`;
 	return String(num);
@@ -28,10 +29,7 @@ export function ContextBar({ usage, onCompact, disabled = false }: ContextBarPro
 					{formatTokens(usage.tokens)} / {formatTokens(usage.contextWindow)} ({percent.toFixed(0)}%)
 				</span>
 				<div className="context-meter" aria-hidden="true">
-					<div
-						className={`context-fill level-${level}`}
-						style={{ width: `${Math.max(4, percent)}%` }}
-					/>
+					<div className={`context-fill level-${level}`} style={{ width: `${Math.max(4, percent)}%` }} />
 				</div>
 			</div>
 			<button
@@ -41,7 +39,9 @@ export function ContextBar({ usage, onCompact, disabled = false }: ContextBarPro
 				onClick={onCompact}
 				title="Compactar contexto (preserva memorias en Engram y aligera la sesión)"
 			>
-				<span className="compact-icon" aria-hidden="true">🗜️</span>
+				<span className="compact-icon" aria-hidden="true">
+					🗜️
+				</span>
 				<span className="compact-text">Compactar</span>
 			</button>
 		</div>

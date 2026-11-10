@@ -20,6 +20,8 @@ import type {
 	ProfilePick,
 	ProfileRole,
 	ServerMessage,
+	UsageEntry,
+	UsageTotals,
 	VoiceCapability,
 } from "@gentle-dot/protocol";
 import { MAX_CONNECTOR_DRAFTS } from "@gentle-dot/protocol";
@@ -64,6 +66,16 @@ export interface ConnectorsState {
 	drafts?: ConnectorDraft[];
 	/** The servers the last scan found in other apps, while the list is shown. */
 	imports?: ImportCandidate[];
+}
+
+/** The usage ledger screen: per-model-call records the daemon keeps (S1). */
+export interface UsageState {
+	open: boolean;
+	/** The newest entries, oldest first, as the daemon last sent them. */
+	entries: UsageEntry[];
+	totals?: UsageTotals;
+	/** True once a payload arrived since the panel opened; reset every time it opens. */
+	loaded: boolean;
 }
 
 /** The chat's model picker (S32). */
@@ -140,6 +152,8 @@ export interface DotState {
 	auth: AuthState;
 	profiles: ProfilesState;
 	connectors: ConnectorsState;
+	/** The usage ledger panel (S1). */
+	usage: UsageState;
 	models: ModelsState;
 	/** What the daemon can do with voice (an OpenAI API key). */
 	voice: VoiceCapability;
@@ -158,6 +172,7 @@ export type DotAction =
 	| { type: "accounts"; open: boolean }
 	| { type: "profiles"; open: boolean }
 	| { type: "connectors"; open: boolean }
+	| { type: "usage"; open: boolean }
 	| { type: "connector_started"; connectorId: string }
 	| { type: "connector_imports_closed" }
 	| { type: "models_opened" }
@@ -178,6 +193,7 @@ export const initialState: DotState = {
 	auth: { open: false },
 	profiles: { open: false, roles: [], models: [], importable: false },
 	connectors: { open: false },
+	usage: { open: false, entries: [], loaded: false },
 	models: { profiles: [] },
 	voice: { transcribe: false, speak: false },
 	voiceReplies: [],
@@ -209,6 +225,8 @@ export function reduce(state: DotState, action: DotAction): DotState {
 			return closeConnectors(openProfiles(state, action.open), action.open);
 		case "connectors":
 			return openConnectors(state, action.open);
+		case "usage":
+			return openUsage(state, action.open);
 		case "connector_started":
 			return {
 				...openConnectors(state, true),
@@ -404,6 +422,12 @@ function reduceServer(state: DotState, message: ServerMessage): DotState {
 			const { type: _type, seq: _seq, ...models } = message;
 			return { ...state, models, model: models.current?.name ?? state.model };
 		}
+		case "usage":
+			// The daemon pushes the ledger snapshot; it never opens the panel itself.
+			return {
+				...state,
+				usage: { ...state.usage, entries: message.entries, totals: message.totals, loaded: true },
+			};
 		case "profiles_imported":
 			return {
 				...state,
@@ -458,6 +482,7 @@ function openProfiles(state: DotState, open: boolean): DotState {
 	return {
 		...state,
 		auth: open ? { ...state.auth, open: false } : state.auth,
+		usage: open ? { ...state.usage, open: false } : state.usage,
 		profiles: open ? { ...state.profiles, open } : { ...rest, open },
 	};
 }
@@ -477,6 +502,7 @@ function openConnectors(state: DotState, open: boolean): DotState {
 	const { imports, ...connectors } = state.connectors;
 	return {
 		...others,
+		usage: open ? { ...others.usage, open: false } : others.usage,
 		connectors: {
 			...connectors,
 			...(open && imports ? { imports } : {}),
@@ -490,6 +516,17 @@ function closeConnectors(state: DotState, when: boolean): DotState {
 	return when && state.connectors.open
 		? { ...state, connectors: { ...state.connectors, open: false } }
 		: state;
+}
+
+/** Usage shares the screen with the others: opening it closes them and marks the data stale. */
+function openUsage(state: DotState, open: boolean): DotState {
+	return open
+		? {
+				...openProfiles(state, false),
+				connectors: { ...state.connectors, open: false },
+				usage: { ...state.usage, open: true, loaded: false },
+			}
+		: { ...state, usage: { ...state.usage, open: false } };
 }
 
 /** Connector sign-ins reuse the sign-in messages, with flow ids of their own. */

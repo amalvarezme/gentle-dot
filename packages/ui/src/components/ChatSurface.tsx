@@ -35,6 +35,7 @@ import { describePinCommand, PinForm } from "./PinForm.tsx";
 import { ProfilesPanel } from "./ProfilesPanel.tsx";
 import { SettingsPanel } from "./SettingsPanel.tsx";
 import { newRequestId, type Send } from "./types.ts";
+import { UsagePanel } from "./UsagePanel.tsx";
 
 interface ChatSurfaceProps {
 	variant: "web" | "panel";
@@ -114,12 +115,18 @@ export function ChatSurface({
 		send({ type: "connectors_list" });
 		dispatch({ type: "connectors", open: true });
 	};
+	const openUsage = () => {
+		setShowSettings(false);
+		send({ type: "usage_list" });
+		dispatch({ type: "usage", open: true });
+	};
 	/** Settings is a screen like the others: opening it closes them, except a sign-in waiting for an answer. */
 	const openSettings = () => {
 		if (state.auth.open && !state.auth.flow?.prompt) dispatch({ type: "accounts", open: false });
 		if (state.profiles.open) dispatch({ type: "profiles", open: false });
 		if (state.connectors.open && !state.connectors.flow?.prompt)
 			dispatch({ type: "connectors", open: false });
+		if (state.usage.open) dispatch({ type: "usage", open: false });
 		setShowSettings(true);
 	};
 	const [showConversations, setShowConversations] = useState(false);
@@ -161,8 +168,9 @@ export function ChatSurface({
 		if (state.profiles.open) dispatch({ type: "profiles", open: false });
 		if (state.connectors.open && !state.connectors.flow?.prompt)
 			dispatch({ type: "connectors", open: false });
+		if (state.usage.open) dispatch({ type: "usage", open: false });
 	};
-	const covered = state.auth.open || state.profiles.open || state.connectors.open;
+	const covered = state.auth.open || state.profiles.open || state.connectors.open || state.usage.open;
 	const settingsShown = settings === true && showSettings && !covered;
 	// One continuous chat unless the daemon turns the conversations list on.
 	const conversations = state.features.conversations;
@@ -209,6 +217,9 @@ export function ChatSurface({
 				</button>
 				<button type="button" className="icon" aria-label="Profiles" title="Profiles" onClick={openProfiles}>
 					<ProfilesIcon />
+				</button>
+				<button type="button" className="icon" aria-label="Usage" title="Usage" onClick={openUsage}>
+					<UsageIcon />
 				</button>
 				<button
 					type="button"
@@ -318,6 +329,12 @@ export function ChatSurface({
 						{...(computer?.available ? { computer } : {})}
 						{...(voiceModel ? { voiceModel } : {})}
 					/>
+				</main>
+			) : null}
+
+			{state.usage.open && !state.auth.open && !state.profiles.open && !state.connectors.open ? (
+				<main className="chat-body">
+					<UsagePanel usage={state.usage} dispatch={dispatch} />
 				</main>
 			) : null}
 
@@ -483,6 +500,29 @@ function MuteButton({ voice }: { voice: VoiceControls }) {
 		>
 			{voice.muted ? <SpeakerOffIcon /> : <SpeakerIcon />}
 		</button>
+	);
+}
+
+/** A bar chart: what the model calls cost (S1). */
+function UsageIcon() {
+	return (
+		<svg
+			width="18"
+			height="18"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="1.8"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			aria-hidden="true"
+			focusable="false"
+		>
+			<path d="M3 3v18h18" />
+			<path d="M7 15v3" />
+			<path d="M12 9v9" />
+			<path d="M17 5v13" />
+		</svg>
 	);
 }
 

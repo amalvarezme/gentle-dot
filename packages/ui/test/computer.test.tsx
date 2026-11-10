@@ -278,29 +278,26 @@ describe("while the assistant controls the Mac (S24.6)", () => {
 		expect(banner).toHaveTextContent("Controlling your Mac · 8:00:00 left");
 	});
 
-	it("the rose shows the in-control state and goes back when the session ends", async () => {
+	it("the robot pet shows the in-control state and goes back when the session ends", async () => {
 		await renderApp("?surface=dot");
 		const dot = screen.getByRole("button");
-		expect(dot.querySelector(".rose")).toHaveClass("rose-idle");
+		expect(dot.querySelector(".dot-pet-still")).not.toBeNull();
 
 		await emitState({ active: true, endsAt: Date.now() + 60_000, reason: "granted" });
 		expect(dot).toHaveAccessibleName("Gentle Dot: controlling your Mac");
 		expect(dot).toHaveClass("dot-in_control");
-		expect(dot.querySelector(".rose")).toHaveClass("rose-control");
 
 		await emitState({ active: false, reason: "panic" });
 		expect(dot).toHaveAccessibleName("Gentle Dot: ready");
 		expect(dot).not.toHaveClass("dot-in_control");
-		expect(dot.querySelector(".rose")).toHaveClass("rose-idle");
 	});
 
-	it("styles the in-control rose and the banner with the site's tokens", () => {
+	it("styles the in-control rim and the banner with the site's tokens", () => {
 		const stylesheet = "../src/styles.css";
 		const css = readFileSync(fileURLToPath(new URL(stylesheet, import.meta.url)), "utf8");
 		const rule = (selector: string) =>
 			css.match(new RegExp(`\\n${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\{([^}]*)\\}`))?.[1] ?? "";
 		expect(rule(".dot-in_control .dot-disc")).toMatch(/--rim: /);
-		expect(rule(".rose-control .rose-light path")).toMatch(/animation: rose-run/);
 		expect(rule(".computer-banner")).toMatch(/var\(--accent/);
 		expect(rule(".computer-banner")).toMatch(/border-radius: var\(--radius-md\)/);
 	});

@@ -71,6 +71,12 @@ importers:
       '@gentle-dot/protocol':
         specifier: workspace:*
         version: link:../protocol
+      '@rive-app/canvas-lite':
+        specifier: 2.45.1
+        version: 2.45.1
+      '@rive-app/react-canvas-lite':
+        specifier: 4.37.1
+        version: 4.37.1(react@19.3.0)
       '@tauri-apps/api':
         specifier: ^2.12.1
         version: 2.12.1
@@ -643,6 +649,14 @@ packages:
 
   '@protobufjs/utf8@1.1.2':
     resolution: {integrity: sha512-b1UQwcEZ4yCnMCD8DAL1VlbvBJE9/IX4FTIp7BG1xYpf29SLazLSrqUkj4w7Y5y7cCVP6E5tcqqcI0xemPkHug==}
+
+  '@rive-app/canvas-lite@2.45.1':
+    resolution: {integrity: sha512-mnhvQYCP+c5VV2UgOG4ztZcjtPY7LQ5v3qK5GeVxajZpkn5sagN1QUYPZeXyTLD0KrbAKi8as4iN5d4Cbm7Jvw==}
+
+  '@rive-app/react-canvas-lite@4.37.1':
+    resolution: {integrity: sha512-SHKnhmJlyYSVYcuptzgvuKqMqpDpWGK0JwaCZAPuJfSCS9Ry/0LjkRov84OpOCsgDuzss2a0gAddX6yOUd1XbA==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0
 
   '@rolldown/binding-android-arm-eabi@1.2.12':
     resolution: {integrity: sha512-dB/a1214qKfHMXCpgqR4OZT+jS4kTyEXbQGJPqzobt5EwH5rX080pxE37alt3RzvR1bf1Yz/yGqRfrYAxuPw0A==}
@@ -2839,6 +2853,13 @@ snapshots:
   '@protobufjs/pool@1.1.0': {}
 
   '@protobufjs/utf8@1.1.2': {}
+
+  '@rive-app/canvas-lite@2.45.1': {}
+
+  '@rive-app/react-canvas-lite@4.37.1(react@19.3.0)':
+    dependencies:
+      '@rive-app/canvas-lite': 2.45.1
+      react: 19.3.0
 
   '@rolldown/binding-android-arm-eabi@1.2.12':
     optional: true

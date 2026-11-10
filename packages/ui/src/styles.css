@@ -16,7 +16,7 @@
 	--green: #4ade80;
 	--red: #f87171;
 	--yellow: #fbbf24;
-	/* The rose Dot's badge (S9) keeps its own amber. */
+	/* The Dot's badge (S9) keeps its own amber. */
 	--amber: #f59e0b;
 	--radius-sm: 8px;
 	--radius-md: 12px;
@@ -196,7 +196,7 @@ textarea:focus {
 	background: var(--surface);
 }
 
-/* ---------- Dot: the rose in a black circle (docs/brand/rose-design.html) ---------- */
+/* ---------- Dot: the robot pet in a black circle (assets/robot.riv) ---------- */
 
 /* The window is this square (DOT_SIZE in shell.rs); outside the disc it stays transparent. */
 .dot {
@@ -225,7 +225,7 @@ textarea:focus {
 
 /* The black disc, as on the app icon: a near-black radial fill with a clean subtle rim.
    The 3 px inset leaves room for its outer shadow inside the window. The rim carries a
-   subtle state cue; the glow and the traveling light stay on the rose's strokes. */
+   subtle state cue; the robot pet carries the rest of the motion. */
 .dot-disc {
 	--rim: rgba(203, 213, 225, 0.28);
 	--rim-glow: rgba(226, 232, 240, 0);
@@ -240,6 +240,33 @@ textarea:focus {
 		inset 0 0 0 1px var(--rim),
 		inset 0 0 6px var(--rim-glow);
 	transition: box-shadow 400ms var(--ease);
+}
+
+/* The robot pet (PetDot) stands inside the black disc, clipped to its circle; the rim keeps
+   its state cues (in control, yolo) around it. */
+.dot-pet {
+	position: absolute;
+	inset: 0;
+	border-radius: 50%;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.dot-pet > div,
+.dot-pet canvas {
+	width: 100%;
+	height: 100%;
+}
+
+/* The robot as a still image: while the animation loads, with reduced motion, or if it cannot load. */
+.dot-pet-still {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	object-fit: contain;
+	pointer-events: none;
 }
 
 .dot-thinking .dot-disc {
@@ -284,260 +311,6 @@ textarea:focus {
 	--rim-glow: rgba(224, 194, 122, 0.45);
 }
 
-/* White background badge framing the UNAL logo */
-.dot-logo-badge {
-	position: absolute;
-	inset: 7px;
-	border-radius: 50%;
-	background: #ffffff;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	z-index: 2;
-	box-shadow:
-		0 1px 3px rgba(0, 0, 0, 0.4),
-		inset 0 0 0 1px rgba(203, 213, 225, 0.4);
-	transition:
-		transform 300ms var(--ease),
-		box-shadow 300ms var(--ease),
-		filter 300ms var(--ease);
-	overflow: hidden;
-}
-
-.dot-logo {
-	width: 82%;
-	height: 82%;
-	object-fit: contain;
-	pointer-events: none;
-	filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
-}
-
-/* Silver thinking state: gentle silver pulse */
-.dot-thinking .dot-logo-badge {
-	animation: silver-thinking-pulse 2.2s ease-in-out infinite;
-}
-
-/* Silver working state: luminous chrome / silver aura and traveling spin */
-.dot-working .dot-logo-badge {
-	animation: silver-working-aura 1.5s ease-in-out infinite;
-}
-
-.dot-working .dot-logo-badge::after {
-	content: "";
-	position: absolute;
-	inset: 0;
-	border-radius: 50%;
-	background: conic-gradient(
-		from 0deg,
-		transparent 0%,
-		rgba(255, 255, 255, 0.9) 20%,
-		rgba(203, 213, 225, 0.8) 45%,
-		transparent 70%
-	);
-	mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 2px));
-	-webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 2px));
-	animation: silver-spin 1.4s linear infinite;
-	pointer-events: none;
-}
-
-@keyframes silver-thinking-pulse {
-	0%,
-	100% {
-		box-shadow:
-			0 1px 3px rgba(0, 0, 0, 0.4),
-			0 0 6px rgba(203, 213, 225, 0.35);
-	}
-	50% {
-		box-shadow:
-			0 1px 3px rgba(0, 0, 0, 0.4),
-			0 0 14px rgba(241, 245, 249, 0.7),
-			0 0 24px rgba(203, 213, 225, 0.45);
-	}
-}
-
-@keyframes silver-working-aura {
-	0%,
-	100% {
-		transform: scale(1);
-		box-shadow:
-			0 1px 3px rgba(0, 0, 0, 0.4),
-			0 0 8px rgba(203, 213, 225, 0.5),
-			0 0 18px rgba(226, 232, 240, 0.35);
-	}
-	50% {
-		transform: scale(1.04);
-		box-shadow:
-			0 1px 3px rgba(0, 0, 0, 0.4),
-			0 0 16px rgba(255, 255, 255, 0.95),
-			0 0 28px rgba(226, 232, 240, 0.8),
-			0 0 40px rgba(203, 213, 225, 0.5);
-	}
-}
-
-@keyframes silver-spin {
-	to {
-		transform: rotate(360deg);
-	}
-}
-
-.rose {
-	display: none;
-}
-
-.rose svg {
-	position: absolute;
-	inset: 0;
-	width: 100%;
-	height: 100%;
-	overflow: visible;
-}
-
-.rose path {
-	fill: none;
-	stroke-linecap: round;
-	stroke-linejoin: round;
-	vector-effect: non-scaling-stroke;
-}
-
-.rose-base {
-	opacity: 0.8;
-	filter: drop-shadow(0 0 1px var(--neon)) drop-shadow(0 0 4px var(--neon-soft));
-}
-
-.rose-base path {
-	stroke: var(--neon);
-	stroke-width: 1.1;
-}
-
-/* The light layer: one dash per stroke that travels from start to end. */
-.rose-light {
-	opacity: 0;
-	filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 3px var(--neon));
-}
-
-.rose-light path {
-	stroke: var(--core);
-	stroke-width: 1.6;
-	stroke-dasharray: 0 1;
-}
-
-.rose-sparkles {
-	filter: drop-shadow(0 0 2px var(--neon));
-}
-
-.rose-sparkles circle {
-	fill: var(--core);
-	opacity: 0.8;
-}
-
-.rose-idle .rose-base {
-	animation: rose-breathe 3.6s ease-in-out infinite;
-}
-
-.rose-idle .rose-sparkles circle {
-	animation: rose-twinkle 2.8s ease-in-out infinite;
-	animation-delay: calc(var(--i) * -0.37s);
-}
-
-.rose-thinking .rose-base {
-	opacity: 0.65;
-}
-
-.rose-thinking .rose-light {
-	opacity: 1;
-}
-
-.rose-thinking .rose-light path {
-	stroke-dasharray: 0.16 1.2;
-	animation: rose-run calc(var(--d) * 1.6) linear infinite;
-	animation-delay: calc(var(--i) * -0.53s);
-}
-
-.rose-thinking .rose-sparkles {
-	opacity: 0.35;
-}
-
-.rose-working .rose-base {
-	opacity: 0.9;
-}
-
-.rose-working .rose-light {
-	opacity: 1;
-}
-
-.rose-working .rose-light path {
-	stroke-dasharray: 0.22 0.5;
-	animation: rose-run calc(var(--d) * 0.55) linear infinite;
-	animation-delay: calc(var(--i) * -0.29s);
-}
-
-.rose-working .rose-sparkles circle {
-	animation: rose-twinkle 0.9s ease-in-out infinite;
-	animation-delay: calc(var(--i) * -0.13s);
-}
-
-.rose-needs .rose-base {
-	opacity: 1;
-	animation: rose-call 1.4s ease-in-out infinite;
-}
-
-.rose-needs .rose-sparkles circle {
-	animation: rose-twinkle 1.4s ease-in-out infinite;
-}
-
-.rose-restarting {
-	filter: grayscale(1) brightness(0.8);
-}
-
-.rose-restarting .rose-base {
-	opacity: 0.4;
-}
-
-.rose-restarting .rose-light {
-	opacity: 0.8;
-}
-
-.rose-restarting .rose-light path {
-	stroke-dasharray: 0.1 2;
-	animation: rose-run calc(var(--d) * 2.4) linear infinite;
-	animation-delay: calc(var(--i) * -0.71s);
-}
-
-.rose-restarting .rose-sparkles,
-.rose-offline .rose-sparkles {
-	display: none;
-}
-
-.rose-offline {
-	filter: grayscale(0.85) brightness(0.6);
-}
-
-.rose-offline .rose-base {
-	opacity: 0.55;
-	filter: none;
-}
-
-/* In control: the whole rose lit and calling, with a steady, quick light along every stroke. */
-.rose-control .rose-base {
-	opacity: 1;
-	animation: rose-call 2s ease-in-out infinite;
-}
-
-.rose-control .rose-light {
-	opacity: 1;
-}
-
-.rose-control .rose-light path {
-	stroke-dasharray: 0.3 0.4;
-	animation: rose-run calc(var(--d) * 0.8) linear infinite;
-	animation-delay: calc(var(--i) * -0.2s);
-}
-
-.rose-control .rose-sparkles circle {
-	animation: rose-twinkle 1.2s ease-in-out infinite;
-	animation-delay: calc(var(--i) * -0.17s);
-}
-
 /* On the circle's edge, at the top right. */
 .dot-badge {
 	position: absolute;
@@ -555,55 +328,6 @@ textarea:focus {
 	box-shadow:
 		0 0 0 1.5px #050506,
 		0 0 4px rgba(245, 165, 36, 0.7);
-}
-
-/* Reduce motion: no traveling light (frozen dashes would look broken); the glow stays, stronger when busy.
-   Glow radii stay small so the glow stays inside the disc. */
-@media (prefers-reduced-motion: reduce) {
-	.rose-light {
-		display: none;
-	}
-
-	.rose-working .rose-base,
-	.rose-needs .rose-base,
-	.rose-control .rose-base {
-		filter: drop-shadow(0 0 1.5px var(--neon)) drop-shadow(0 0 4px var(--neon));
-	}
-}
-
-@keyframes rose-run {
-	from {
-		stroke-dashoffset: 1.2;
-	}
-	to {
-		stroke-dashoffset: -0.2;
-	}
-}
-
-@keyframes rose-breathe {
-	0%,
-	100% {
-		filter: drop-shadow(0 0 1px var(--neon)) drop-shadow(0 0 2px var(--neon-soft));
-	}
-	50% {
-		filter: drop-shadow(0 0 1.5px var(--neon)) drop-shadow(0 0 4px var(--neon));
-	}
-}
-
-@keyframes rose-call {
-	0%,
-	100% {
-		filter: drop-shadow(0 0 1px var(--neon)) drop-shadow(0 0 4px var(--neon-soft));
-	}
-	50% {
-		filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 3px var(--neon)) drop-shadow(0 0 5px var(--neon-soft));
-	}
-}
-
-@keyframes rose-twinkle {
-	50% {
-		opacity: 0.15;
-	}
 }
 
 @keyframes pulse {

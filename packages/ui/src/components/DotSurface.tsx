@@ -1,8 +1,9 @@
 import type { AgentState } from "@gentle-dot/protocol";
-import { useRef } from "react";
-import logoUrl from "../assets/logo-labia.png";
-import { Rose, type RoseMood } from "../rose/Rose.tsx";
+import { useCallback, useRef, useState } from "react";
+import robotStillUrl from "../assets/robot-still.png";
+import { PET_LEVEL, useDotCues } from "../dot/cues.ts";
 import { isWindows } from "../shortcut.ts";
+import { PetDot, supportsPet } from "./PetDot.tsx";
 
 const LABELS: Record<AgentState, string> = {
 	starting: "starting",
@@ -14,16 +15,6 @@ const LABELS: Record<AgentState, string> = {
 	error: "unavailable",
 };
 
-const MOODS: Record<AgentState, RoseMood> = {
-	starting: "restarting",
-	idle: "idle",
-	thinking: "thinking",
-	working: "working",
-	needs_you: "needs",
-	restarting: "restarting",
-	error: "offline",
-};
-
 const DRAG_THRESHOLD_PX = 3;
 
 interface DotSurfaceProps {
@@ -31,13 +22,16 @@ interface DotSurfaceProps {
 	connected: boolean;
 	/** The assistant controls the Mac (S24.6); it shows over every other state. */
 	inControl?: boolean;
-	/** Yolo mode is on (S24.9): risky actions run without asking, so the rose says so. */
+	/** Yolo mode is on (S24.9): risky actions run without asking, so the rim says so. */
 	yolo?: boolean;
 	toggle: () => void;
 	startDrag: () => void;
 }
 
-/** The collapsed, always-on-top rose in its black circle. A click opens the panel; a drag moves the window. */
+/**
+ * The collapsed, always-on-top robot pet in its black circle: animated when the webview allows it,
+ * a still robot otherwise. A click opens the panel; a drag moves the window.
+ */
 export function DotSurface({
 	agentState,
 	connected,
@@ -49,6 +43,10 @@ export function DotSurface({
 	const press = useRef<{ x: number; y: number; dragging: boolean } | undefined>(undefined);
 	const state = connected ? agentState : "restarting";
 	const label = inControl ? `controlling your ${isWindows() ? "PC" : "Mac"}` : LABELS[state];
+	const [pet] = useState(supportsPet);
+	const [petReady, setPetReady] = useState(false);
+	const onPetReady = useCallback((ready: boolean) => setPetReady(ready), []);
+	const { cue, unlock } = useDotCues(state);
 
 	return (
 		<button
@@ -57,6 +55,7 @@ export function DotSurface({
 			aria-label={`Gentle Dot: ${label}${yolo ? ", yolo mode on" : ""}`}
 			onPointerDown={(event) => {
 				if (event.button !== 0) return;
+				unlock();
 				press.current = { x: event.clientX, y: event.clientY, dragging: false };
 			}}
 			onPointerMove={(event) => {
@@ -80,10 +79,8 @@ export function DotSurface({
 			}}
 		>
 			<span className="dot-disc" aria-hidden="true">
-				<span className="dot-logo-badge">
-					<img src={logoUrl} alt="" className="dot-logo" aria-hidden="true" />
-				</span>
-				<Rose mood={inControl ? "control" : MOODS[state]} />
+				{pet ? <PetDot level={PET_LEVEL[state]} cue={cue} onReady={onPetReady} /> : null}
+				{petReady ? null : <img src={robotStillUrl} alt="" className="dot-pet-still" />}
 			</span>
 			{state === "needs_you" ? (
 				<span className="dot-badge" aria-hidden="true">

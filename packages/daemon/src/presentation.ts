@@ -215,7 +215,7 @@ function commandOf(args: unknown): string | undefined {
 	const record = args as Record<string, unknown>;
 	const cmd = record.command ?? record.CommandLine;
 	if (typeof cmd !== "string" || !cmd.trim()) return undefined;
-	return cmd.trim().split("\n")[0].trim();
+	return cmd.trim().split("\n")[0]?.trim();
 }
 
 function labelOf(args: unknown): string | undefined {

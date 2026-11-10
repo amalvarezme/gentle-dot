@@ -71,6 +71,21 @@ describe("header icons", () => {
 });
 
 describe("typing closes open options", () => {
+	it("offers Back to chat only while another screen covers the chat, and it returns to the chat", async () => {
+		render(<Harness initial={ready} send={vi.fn()} />);
+		const back = () => screen.queryByRole("button", { name: "Back to chat" });
+		expect(back()).toBeNull();
+		for (const name of ["Accounts", "Profiles", "Usage", "Connectors", "Conversations"]) {
+			await userEvent.click(screen.getByRole("button", { name }));
+			expect(back()).toHaveAttribute("title", "Back to chat");
+			await userEvent.click(back() as HTMLElement);
+			expect(back()).toBeNull();
+			expect(screen.queryByRole("region", { name: "Accounts" })).toBeNull();
+			expect(screen.queryByRole("navigation", { name: "Earlier conversations" })).toBeNull();
+			expect(box()).toBeVisible();
+		}
+	});
+
 	it("closes the conversations list, accounts, and profiles when the first character is typed", async () => {
 		const send = vi.fn();
 		render(<Harness initial={ready} send={send} />);

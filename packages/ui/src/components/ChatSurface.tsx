@@ -15,6 +15,7 @@ import { ConnectorsPanel } from "./ConnectorsPanel.tsx";
 import { ContextBar } from "./ContextBar.tsx";
 import {
 	AccountsIcon,
+	ChatIcon,
 	CollapseIcon,
 	ConnectorsIcon,
 	ConversationsIcon,
@@ -172,6 +173,16 @@ export function ChatSurface({
 	};
 	const covered = state.auth.open || state.profiles.open || state.connectors.open || state.usage.open;
 	const settingsShown = settings === true && showSettings && !covered;
+	/** Back to chat (header): closes whatever screen covers the chat, the conversations list too. */
+	const awayFromChat = covered || settingsShown || showConversations;
+	const backToChat = () => {
+		setShowConversations(false);
+		setShowSettings(false);
+		if (state.auth.open) dispatch({ type: "accounts", open: false });
+		if (state.profiles.open) dispatch({ type: "profiles", open: false });
+		if (state.connectors.open) dispatch({ type: "connectors", open: false });
+		if (state.usage.open) dispatch({ type: "usage", open: false });
+	};
 	// One continuous chat unless the daemon turns the conversations list on.
 	const conversations = state.features.conversations;
 	const status = statusText(state);
@@ -212,6 +223,17 @@ export function ChatSurface({
 						<span className="gradient-text">Gentle Dot</span>
 					</h1>
 				)}
+				{awayFromChat ? (
+					<button
+						type="button"
+						className="icon"
+						aria-label="Back to chat"
+						title="Back to chat"
+						onClick={backToChat}
+					>
+						<ChatIcon />
+					</button>
+				) : null}
 				<button type="button" className="icon" aria-label="Accounts" title="Accounts" onClick={openAccounts}>
 					<AccountsIcon />
 				</button>

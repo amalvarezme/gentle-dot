@@ -34,3 +34,4 @@ pi-claude-bridge logging pattern the user uses in Gentle Shell.
 - L1: User asked (2026-11-09): "revisa y explora como usar el gentle:profile nan_balanced pi en gentle dot y que sea seleccionable los modelos nan y su loggeo y autenticacion de las app gentle dot". Exploration done; user chose "Implementar loggeo de llamadas".
 - L2: User: "recuerda que en gentle shell estamos usando nan por un bridge".
 - L3: User: "mira como hicimos con el bridge de claude bridge en pi, para que sea algo similar".
+- L4: Implemented 2026-11-09. Commits: b53c873 (protocol), a2cdc82 (UsageLedger), 2848441 (bridge wiring + fixture + gateway tests), 31c2139 (UsagePanel UI), b8df1cf (pre-existing TS2532 fix). Verification: full vitest run 1045 passed (91 files), daemon 666, ui 288; tsc clean for protocol/daemon/ui.

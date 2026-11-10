@@ -41,9 +41,9 @@ use tauri_plugin_opener::OpenerExt;
 pub(crate) const DOT: &str = "dot";
 pub(crate) const PANEL: &str = "panel";
 const TRAY: &str = "main";
-/// The Dot window, in points: a 66 pt black disc with the rose, plus a 3 pt
-/// ring for its shadow. About the screen area of the earlier 64 × 84 rose.
-const DOT_SIZE: (f64, f64) = (72.0, 72.0);
+/// The Dot window, in points: a 132 pt black disc with the robot pet, plus a 6 pt
+/// ring for its shadow; twice the earlier 72 pt rose Dot, so the robot reads at a glance.
+const DOT_SIZE: (f64, f64) = (144.0, 144.0);
 const PANEL_SIZE: (f64, f64) = (420.0, 640.0);
 /// All placement runs in points (see `geometry`), so margins never depend on a scale factor.
 const EDGE_MARGIN: i32 = 12;

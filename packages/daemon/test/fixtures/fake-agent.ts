@@ -42,7 +42,9 @@
 //   FAKE_AGENT_STDIN_FILE  append every line the daemon writes to the agent's stdin
 // get_available_models lists MODELS; set_model and set_thinking_level change what
 // get_state reports, so tests can read the last values back. A model's `input` says whether it
-// accepts images, like the engine's models.
+// accepts images, like the engine's models. Assistant messages carry per-call usage, provider
+// "nan" (a bridge-proxied call), the model id, and stopReason "stop"; get_session_stats reports
+// a fixed contextUsage.
 import { randomUUID } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -72,6 +74,16 @@ const MODELS: Rec[] = [
 ];
 let model = MODELS[0] as Rec;
 let thinkingLevel = "medium";
+/** Per-call usage reported on every assistant message, in the pi-ai shape (S2: a bridge-proxied
+ * call's provider/model as the engine reports them). */
+const USAGE = {
+	input: 10,
+	output: 25,
+	cacheRead: 0,
+	cacheWrite: 3,
+	totalTokens: 38,
+	cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0.0123 },
+};
 
 const argv = process.argv.slice(2);
 if (process.env.FAKE_AGENT_ARGS_FILE) writeFileSync(process.env.FAKE_AGENT_ARGS_FILE, JSON.stringify(argv));
@@ -222,7 +234,15 @@ function askUi(request: Rec): Promise<Rec> {
 }
 
 function assistantText(text: string): void {
-	const message = { role: "assistant", content: [{ type: "text", text }] };
+	const message = {
+		role: "assistant",
+		content: [{ type: "text", text }],
+		provider: "nan",
+		model: model.id,
+		thinkingLevel,
+		stopReason: "stop",
+		usage: USAGE,
+	};
 	out({ type: "message_start", message });
 	for (const delta of text.match(/.{1,8}/gs) ?? []) {
 		out({ type: "message_update", assistantMessageEvent: { type: "text_delta", contentIndex: 0, delta } });
@@ -468,6 +488,10 @@ function handle(rec: Rec) {
 		case "switch_session":
 			void switchSession(rec);
 			return;
+		case "get_session_stats":
+			return respond(id, type, {
+				contextUsage: { tokens: 1234, contextWindow: 200000, percent: 0.617 },
+			});
 		case "get_available_models":
 			return respond(id, type, { models: MODELS });
 		case "set_model": {

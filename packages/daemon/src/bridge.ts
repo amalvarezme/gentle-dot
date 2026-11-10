@@ -47,6 +47,7 @@ import {
 import { DEFAULT_ROTATION, type RotationLimits, SessionRotator } from "./rotation.ts";
 import type { AgentRecord, AgentSupervisor, SupervisorEvent } from "./supervisor.ts";
 import { composePrompt, type StoredFile, splitAttachments, type UploadStore } from "./uploads.ts";
+import { UsageLedger } from "./usage-ledger.ts";
 import type { VoiceService } from "./voice.ts";
 import type { PinGate } from "./web-pin.ts";
 import { isBlockedInput, presentText, shouldShowToast } from "./white-label.ts";
@@ -156,6 +157,9 @@ export class DotBridge {
 	private stopRequested = false;
 	/** The conversation switch in progress; messages sent meanwhile wait for it. */
 	private switching: Promise<void> = Promise.resolve();
+	/** When each assistant message started, for the usage ledger's duration. */
+	private readonly usageStarts = new Map<string, { startMs: number; sessionId?: string }>();
+	private readonly ledger: UsageLedger;
 	/** Messages waiting for the agent, as shown to the user. */
 	private queue: MessageQueue = { steering: [], followUp: [] };
 	/** Messages on their way to the agent; the session is never rotated under them. */
@@ -171,6 +175,11 @@ export class DotBridge {
 		this.options = options;
 		this.liveSwitch = new LiveModelSwitch(supervisor, (line) => this.log(line));
 		this.sessionDir = join(options.dataDir, "sessions");
+		this.ledger = new UsageLedger({
+			dir: join(options.dataDir, "usage"),
+			disabled: process.env.GENTLE_DOT_USAGE_LEDGER === "0",
+			onError: (error) => this.log(`usage ledger error: ${error.message}`),
+		});
 		this.features = options.features ?? { conversations: false };
 		this.rotator = new SessionRotator(supervisor, {
 			limits: options.rotation ?? DEFAULT_ROTATION,
@@ -314,6 +323,9 @@ export class DotBridge {
 		if (this.interrupted) this.deliver(client, { type: "interrupted" });
 		for (const notice of this.notices) this.deliver(client, notice);
 		void this.sendContextUsage(client);
+		// A snapshot only once the ledger has calls; an empty one would add noise to every connect.
+		const usage = this.usagePayload();
+		if (usage.entries.length > 0) this.deliver(client, usage);
 		return () => {
 			this.clients.delete(client);
 			this.clientIds.delete(clientId);
@@ -562,6 +574,9 @@ export class DotBridge {
 				return;
 			case "models_list":
 				this.deliver(client, await this.modelsPayload());
+				return;
+			case "usage_list":
+				this.deliver(client, this.usagePayload());
 				return;
 			case "model_set":
 				await this.setModel(client, message);
@@ -989,6 +1004,12 @@ export class DotBridge {
 		else this.broadcastModels();
 	}
 
+	/** The usage ledger's newest calls and their totals (S1). */
+	private usagePayload(limit = 200): Extract<ServerPayload, { type: "usage" }> {
+		const { entries, totals } = this.ledger.read(limit);
+		return { type: "usage", entries, totals };
+	}
+
 	/** The current model, the connected accounts' models by account, and the profiles as quick picks. */
 	private async modelsPayload(): Promise<Extract<ServerPayload, { type: "models" }>> {
 		const [available, running, accounts] = await Promise.all([
@@ -1163,7 +1184,8 @@ export class DotBridge {
 				this.deliver(client, {
 					type: "toast",
 					level: "warning",
-					message: "No fue posible compactar el contexto en este momento (la sesión es muy reciente o está inactiva).",
+					message:
+						"No fue posible compactar el contexto en este momento (la sesión es muy reciente o está inactiva).",
 				});
 			}
 		});
@@ -1196,7 +1218,9 @@ export class DotBridge {
 	}
 
 	/** Gets current context usage estimate from pi-coding-agent RPC or session file stats. */
-	private async getContextUsage(): Promise<{ tokens: number; contextWindow: number; percent: number } | undefined> {
+	private async getContextUsage(): Promise<
+		{ tokens: number; contextWindow: number; percent: number } | undefined
+	> {
 		try {
 			if (this.supervisor.state === "ready" && !this.supervisor.busy) {
 				const res = await this.supervisor.request({ type: "get_session_stats" });
@@ -1388,6 +1412,11 @@ export class DotBridge {
 		}
 		if (message?.role === "assistant") {
 			this.assistantId = `m${++this.nextMessage}`;
+			if (!this.usageStarts.has(this.assistantId))
+				this.usageStarts.set(this.assistantId, {
+					startMs: Date.now(),
+					sessionId: this.supervisor.sessionId,
+				});
 			this.broadcast({ type: "thinking_delta", messageId: this.assistantId, delta: "" });
 		}
 	}
@@ -1406,7 +1435,22 @@ export class DotBridge {
 
 	private onMessageEnd(event: AgentRecord): void {
 		const message = event.message as
-			| { role?: string; stopReason?: string; errorMessage?: string }
+			| {
+					role?: string;
+					stopReason?: string;
+					errorMessage?: string;
+					provider?: string;
+					model?: string;
+					thinkingLevel?: string;
+					usage?: {
+						input?: number;
+						output?: number;
+						cacheRead?: number;
+						cacheWrite?: number;
+						totalTokens?: number;
+						cost?: { total?: number };
+					};
+			  }
 			| undefined;
 		if (message?.role !== "assistant") return;
 		const messageId = this.assistantId ?? `m${++this.nextMessage}`;
@@ -1415,12 +1459,68 @@ export class DotBridge {
 		const thinking = rawThinking ? presentText(rawThinking) : undefined;
 		// The engine ends a stopped answer as "aborted", or as an error when a session switch tore it down.
 		if (message.stopReason === "aborted" || (message.stopReason === "error" && this.stopRequested)) {
-			this.broadcast({ type: "message_done", messageId, text, ...(thinking ? { thinking } : {}), stopped: true });
+			this.broadcast({
+				type: "message_done",
+				messageId,
+				text,
+				...(thinking ? { thinking } : {}),
+				stopped: true,
+			});
 		} else if (message.stopReason === "error") {
 			this.log(`assistant error: ${message.errorMessage ?? "unknown"}`);
-			this.broadcast({ type: "message_done", messageId, text, ...(thinking ? { thinking } : {}), error: ANSWER_FAILED });
+			this.broadcast({
+				type: "message_done",
+				messageId,
+				text,
+				...(thinking ? { thinking } : {}),
+				error: ANSWER_FAILED,
+			});
 		} else {
 			this.broadcast({ type: "message_done", messageId, text, ...(thinking ? { thinking } : {}) });
+		}
+		this.recordUsage(messageId, message);
+	}
+
+	/** Records one completed model call; a ledger failure never breaks message handling. */
+	private recordUsage(
+		messageId: string,
+		message: {
+			provider?: string;
+			model?: string;
+			thinkingLevel?: string;
+			stopReason?: string;
+			errorMessage?: string;
+			usage?: {
+				input?: number;
+				output?: number;
+				cacheRead?: number;
+				cacheWrite?: number;
+				totalTokens?: number;
+				cost?: { total?: number };
+			};
+		},
+	): void {
+		const start = this.usageStarts.get(messageId);
+		this.usageStarts.delete(messageId);
+		try {
+			this.ledger.append({
+				ts: new Date().toISOString(),
+				...(start?.sessionId ? { sessionId: start.sessionId } : {}),
+				provider: message.provider ?? "unknown",
+				model: message.model ?? "unknown",
+				...(message.thinkingLevel ? { thinkingLevel: message.thinkingLevel } : {}),
+				input: message.usage?.input ?? 0,
+				output: message.usage?.output ?? 0,
+				cacheRead: message.usage?.cacheRead ?? 0,
+				cacheWrite: message.usage?.cacheWrite ?? 0,
+				totalTokens: message.usage?.totalTokens ?? 0,
+				cost: message.usage?.cost?.total ?? 0,
+				durationMs: start ? Date.now() - start.startMs : 0,
+				...(message.stopReason ? { stopReason: message.stopReason } : {}),
+				...(message.errorMessage ? { errorMessage: message.errorMessage } : {}),
+			});
+		} catch (error) {
+			this.log(`usage ledger append failed: ${(error as Error).message}`);
 		}
 	}
 
